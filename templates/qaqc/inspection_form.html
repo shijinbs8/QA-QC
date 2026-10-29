@@ -164,9 +164,10 @@
 
                 <!-- Stroke Width Selector -->
                 <select id="strokeWidthSelect" onchange="setStrokeWidth(this.value)" style="background: #374151; color: #fff; border: 1px solid #4B5563; border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.76rem; font-weight: 700;">
-                  <option value="4">Line: Thin (4px)</option>
-                  <option value="7" selected>Line: Medium (7px)</option>
-                  <option value="12">Line: Thick (12px)</option>
+                  <option value="6">Line: Normal (6px)</option>
+                  <option value="10" selected>Line: Bold (10px)</option>
+                  <option value="16">Line: Extra Bold (16px)</option>
+                  <option value="24">Line: Heavy (24px)</option>
                 </select>
               </div>
 
@@ -370,7 +371,7 @@ const badgeControlsPanel = document.getElementById('badgeControlsPanel');
 let baseImage = null;
 let currentTool = 'pen'; // 'pen', 'arrow', 'circle'
 let strokeColor = '#FF4747'; // Red markup standard
-let strokeWidth = 7;
+let strokeWidth = 10;
 let isDrawing = false;
 let startX = 0, startY = 0;
 let undoStack = [];
@@ -643,7 +644,7 @@ window.addEventListener('touchend', stopDrawing);
 
 // Draw Arrow Helper
 function drawArrow(fromX, fromY, toX, toY) {
-  const headlen = strokeWidth * 3.2; // length of head in px
+  const headlen = Math.max(24, strokeWidth * 3.5); // length of head in px
   const dx = toX - fromX;
   const dy = toY - fromY;
   const angle = Math.atan2(dy, dx);
@@ -780,10 +781,10 @@ function bakeCanvasImage() {
   // 1. Draw annotated markup canvas
   bCtx.drawImage(canvas, 0, 0);
 
-  // Resolution-normalized scaling: based strictly on image canvas resolution (1000px reference)
-  // Guarantees crisp, beautifully proportioned output on phones and desktop alike.
-  const scale = Math.max(0.65, Math.min(1.4, canvas.width / 1000));
-  const margin = Math.round(12 * scale);
+  // Resolution-normalized scaling: based on 950px canvas reference
+  // Ensures prominent, crisp, and beautifully proportioned output on phones and desktops
+  const scale = Math.max(0.85, Math.min(1.5, canvas.width / 950));
+  const margin = Math.round(14 * scale);
 
   // 2. Bake High-Tech Unified Defect Overlay Card (Screenshot Matching)
   if (badgePositions.unifiedDefectCard && badgePositions.unifiedDefectCard.visible) {
@@ -800,19 +801,19 @@ function bakeCanvasImage() {
     else if (dp === 'Electrical') deptColor = '#EAB308'; // Amber
     else if (dp === 'Firefighting') deptColor = '#EF4444'; // Red
 
-    const pad = Math.round(12 * scale);
-    const radius = Math.round(10 * scale);
-    const pillFontSize = Math.max(10, Math.round(11 * scale));
-    const locFontSize = Math.max(10, Math.round(11.5 * scale));
-    const descFontSize = Math.max(12, Math.round(14 * scale));
-    const tsFontSize = Math.max(10, Math.round(11 * scale));
+    const pad = Math.round(15 * scale);
+    const radius = Math.round(12 * scale);
+    const pillFontSize = Math.max(12, Math.round(13 * scale));
+    const locFontSize = Math.max(12, Math.round(14 * scale));
+    const descFontSize = Math.max(14, Math.round(17 * scale));
+    const tsFontSize = Math.max(11, Math.round(12.5 * scale));
 
     // Department pill dimensions
     bCtx.font = '800 ' + pillFontSize + 'px Inter, sans-serif';
     const pillText = dp.toUpperCase();
     const pillTextW = bCtx.measureText(pillText).width;
-    const pillPadX = Math.round(7 * scale);
-    const pillH = Math.round(18 * scale);
+    const pillPadX = Math.round(9 * scale);
+    const pillH = Math.round(22 * scale);
     const pillW = pillTextW + (pillPadX * 2);
 
     // Location text dimensions
@@ -820,9 +821,9 @@ function bakeCanvasImage() {
     const locText = `📍 ${fl} / ${zn}`;
     const locTextW = bCtx.measureText(locText).width;
 
-    // Card width bounded to canvas width
-    let cardW = Math.max(Math.round(350 * scale), pillW + locTextW + (pad * 3));
-    const maxCardW = canvas.width - (margin * 2);
+    // Card width bounded to canvas width (prominent yet fits comfortably)
+    let cardW = Math.max(Math.round(410 * scale), pillW + locTextW + (pad * 3));
+    const maxCardW = Math.round(canvas.width * 0.90);
     if (cardW > maxCardW) cardW = maxCardW;
 
     // Measure text lines for description
@@ -843,11 +844,11 @@ function bakeCanvasImage() {
     if (curLine) lines.push(curLine);
     if (lines.length > 3) lines = lines.slice(0, 3);
 
-    const row1H = Math.round(18 * scale);
-    const descLineH = Math.round(18 * scale);
+    const row1H = Math.round(22 * scale);
+    const descLineH = Math.round(22 * scale);
     const descTotalH = Math.max(descLineH, lines.length * descLineH);
-    const row3H = Math.round(15 * scale);
-    const gap = Math.round(7 * scale);
+    const row3H = Math.round(18 * scale);
+    const gap = Math.round(8 * scale);
     const cardH = (pad * 2) + row1H + gap + descTotalH + gap + row3H;
 
     // Safely clamp card position within canvas boundaries
@@ -868,10 +869,10 @@ function bakeCanvasImage() {
 
     bCtx.save();
     // Card background with dark blur aesthetic
-    bCtx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-    bCtx.shadowBlur = 14 * scale;
-    bCtx.shadowOffsetY = 5 * scale;
-    bCtx.fillStyle = 'rgba(24, 27, 36, 0.94)';
+    bCtx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+    bCtx.shadowBlur = 18 * scale;
+    bCtx.shadowOffsetY = 6 * scale;
+    bCtx.fillStyle = 'rgba(24, 27, 36, 0.95)';
     bCtx.beginPath();
     bCtx.roundRect(cardX, cardY, cardW, cardH, radius);
     bCtx.fill();
@@ -879,7 +880,7 @@ function bakeCanvasImage() {
 
     // Glowing border in department accent
     bCtx.strokeStyle = deptColor;
-    bCtx.lineWidth = Math.max(2, 2.2 * scale);
+    bCtx.lineWidth = Math.max(2.5, 2.8 * scale);
     bCtx.stroke();
 
     // Row 1: Dept pill & location
@@ -889,7 +890,7 @@ function bakeCanvasImage() {
 
     bCtx.fillStyle = deptColor;
     bCtx.beginPath();
-    bCtx.roundRect(pillX, pillY, pillW, pillH, Math.round(4 * scale));
+    bCtx.roundRect(pillX, pillY, pillW, pillH, Math.round(5 * scale));
     bCtx.fill();
 
     bCtx.fillStyle = (dp === 'Electrical') ? '#000000' : '#FFFFFF';
@@ -937,11 +938,11 @@ function bakeCanvasImage() {
     let y = (badgePositions[id].y / 100) * canvas.height;
 
     // Draw stylish pill badge onto canvas
-    bCtx.font = 'bold ' + Math.max(13, Math.round(14 * scale)) + 'px Manrope, sans-serif';
-    const paddingX = Math.round(12 * scale);
+    bCtx.font = 'bold ' + Math.max(14, Math.round(16 * scale)) + 'px Manrope, sans-serif';
+    const paddingX = Math.round(16 * scale);
     const textWidth = bCtx.measureText(text).width;
     const boxW = textWidth + paddingX * 2;
-    const boxH = Math.round(28 * scale);
+    const boxH = Math.round(32 * scale);
     let boxX = x - boxW / 2;
     let boxY = y - boxH / 2;
 
@@ -954,7 +955,7 @@ function bakeCanvasImage() {
     bCtx.save();
     bCtx.fillStyle = 'rgba(17, 24, 39, 0.9)';
     bCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-    bCtx.lineWidth = Math.max(1.5, 2 * scale);
+    bCtx.lineWidth = Math.max(1.8, 2.2 * scale);
     bCtx.beginPath();
     bCtx.roundRect(boxX, boxY, boxW, boxH, boxH / 2);
     bCtx.fill();
