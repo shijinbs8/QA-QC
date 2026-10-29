@@ -1,0 +1,164 @@
+{% extends 'qaqc/base.html' %}
+
+{% block title %}Defect Inspections Registry &bull; Skydash MEP QA/QC{% endblock %}
+{% block page_heading %}Defect Inspections Registry{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--text-dark); margin: 0; letter-spacing: -0.02em;">
+      QA/QC Snag & Non-Conformance Log
+    </h2>
+    <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.25rem 0 0 0;">
+      Centralized register of mechanical, plumbing, electrical, and firefighting inspection logs.
+    </p>
+  </div>
+  <a href="{% url 'inspection_create' %}" class="btn-skydash btn-skydash-primary">
+    <i class="fa-solid fa-plus-circle"></i>
+    <span>Record Defect Inspection</span>
+  </a>
+</div>
+
+<!-- Filters Toolbar -->
+<div class="skydash-card" style="margin-bottom: 1.5rem;">
+  <div class="skydash-card-body" style="padding: 1.25rem 1.5rem;">
+    <form method="get" action="{% url 'inspections_list' %}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 100px; gap: 1rem; align-items: flex-end;">
+      <!-- Project Filter -->
+      <div class="form-group" style="margin: 0;">
+        <label class="form-label" style="font-size: 0.74rem;">Project Site</label>
+        <select name="project" class="form-select" style="padding: 0.5rem 0.75rem; font-size: 0.82rem;">
+          <option value="">All Projects</option>
+          {% for p in projects %}
+          <option value="{{ p.id }}" {% if selected_project == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Department Filter -->
+      <div class="form-group" style="margin: 0;">
+        <label class="form-label" style="font-size: 0.74rem;">Trade Discipline</label>
+        <select name="department" class="form-select" style="padding: 0.5rem 0.75rem; font-size: 0.82rem;">
+          <option value="">All Trades</option>
+          <option value="HVAC" {% if selected_department == 'HVAC' %}selected{% endif %}>HVAC</option>
+          <option value="Plumbing" {% if selected_department == 'Plumbing' %}selected{% endif %}>Plumbing</option>
+          <option value="Electrical" {% if selected_department == 'Electrical' %}selected{% endif %}>Electrical</option>
+          <option value="Firefighting" {% if selected_department == 'Firefighting' %}selected{% endif %}>Firefighting</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="form-group" style="margin: 0;">
+        <label class="form-label" style="font-size: 0.74rem;">Clearance Status</label>
+        <select name="status" class="form-select" style="padding: 0.5rem 0.75rem; font-size: 0.82rem;">
+          <option value="">All Statuses</option>
+          <option value="Pending Clearance" {% if selected_status == 'Pending Clearance' %}selected{% endif %}>Pending Clearance</option>
+          <option value="Given Clearance" {% if selected_status == 'Given Clearance' %}selected{% endif %}>Given Clearance</option>
+          <option value="Open NCR" {% if selected_status == 'Open NCR' %}selected{% endif %}>Open NCR</option>
+        </select>
+      </div>
+
+      <!-- Search Query -->
+      <div class="form-group" style="margin: 0;">
+        <label class="form-label" style="font-size: 0.74rem;">Keyword</label>
+        <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search faults, unit..." style="padding: 0.5rem 0.75rem; font-size: 0.82rem;">
+      </div>
+
+      <div style="display: flex; gap: 0.4rem;">
+        <button type="submit" class="btn-skydash btn-skydash-primary btn-skydash-sm" style="height: 38px; width: 100%;">
+          Filter
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Inspections Table -->
+<div class="skydash-card">
+  <div class="skydash-card-body" style="padding: 0;">
+    {% if inspections %}
+    <div class="skydash-table-responsive">
+      <table class="skydash-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Trade Discipline</th>
+            <th>Project Site</th>
+            <th>Level & Unit</th>
+            <th>Fault / Snag Description</th>
+            <th>Overlay Pins</th>
+            <th>Current Status</th>
+            <th>Quick Update</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in inspections %}
+          <tr>
+            <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; font-weight: 700; color: var(--text-body);">
+              #{{ item.id }}
+            </td>
+            <td>
+              <span class="badge-dept dept-{{ item.department|lower }}">
+                {% if item.department == 'HVAC' %}<i class="fa-solid fa-fan"></i>
+                {% elif item.department == 'Plumbing' %}<i class="fa-solid fa-faucet-drip"></i>
+                {% elif item.department == 'Electrical' %}<i class="fa-solid fa-bolt"></i>
+                {% else %}<i class="fa-solid fa-fire-extinguisher"></i>{% endif %}
+                {{ item.department }}
+              </span>
+            </td>
+            <td>
+              <div style="font-weight: 700; color: var(--text-dark);">{{ item.project.name }}</div>
+            </td>
+            <td>
+              <strong style="color: var(--text-dark);">Level {{ item.floor_number }}</strong>
+              {% if item.apartment_number %}
+              <div style="font-size: 0.74rem; color: var(--text-body);">{{ item.apartment_number }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <div style="max-width: 320px; font-size: 0.82rem; color: var(--text-body); line-height: 1.4;">
+                {{ item.faults_description|truncatewords:20 }}
+              </div>
+            </td>
+            <td>
+              {% if item.overlay_count %}
+              <span style="font-size: 0.74rem; font-weight: 700; color: var(--skydash-primary); background: var(--skydash-primary-light); padding: 3px 8px; border-radius: 6px;">
+                <i class="fa-solid fa-map-pin"></i> {{ item.overlay_count }} CAD Pins
+              </span>
+              {% else %}
+              <span style="font-size: 0.72rem; color: #b2b9c5;">No Pins</span>
+              {% endif %}
+            </td>
+            <td>
+              <span id="status-badge-{{ item.id }}" class="badge-status {{ item.status_badge_class }}">
+                {{ item.status }}
+              </span>
+            </td>
+            <td>
+              <select class="form-select js-quick-status-change" data-inspection-id="{{ item.id }}" style="font-size: 0.75rem; padding: 0.3rem 0.55rem; width: 135px; border-radius: 6px;">
+                <option value="Pending Clearance" {% if item.status == 'Pending Clearance' %}selected{% endif %}>Pending Clearance</option>
+                <option value="Given Clearance" {% if item.status == 'Given Clearance' %}selected{% endif %}>Given Clearance</option>
+                <option value="Open NCR" {% if item.status == 'Open NCR' %}selected{% endif %}>Open NCR</option>
+              </select>
+            </td>
+            <td>
+              <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-outline btn-skydash-sm" title="Open Full Inspection Report">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Inspect
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="padding: 3rem; text-align: center;">
+      <i class="fa-solid fa-filter-circle-xmark" style="font-size: 2.5rem; color: #b2b9c5; margin-bottom: 0.5rem; display: block;"></i>
+      <h4 style="margin: 0; color: var(--text-dark); font-weight: 800;">No Inspections Matched Filters</h4>
+      <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.5rem 0 1rem 0;">Try adjusting your trade, project, or status filters.</p>
+      <a href="{% url 'inspections_list' %}" class="btn-skydash btn-skydash-outline btn-skydash-sm">Clear All Filters</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

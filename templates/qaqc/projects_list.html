@@ -1,0 +1,298 @@
+{% extends 'qaqc/base.html' %}
+
+{% block title %}Projects Dashboard &bull; Skydash MEP QA/QC{% endblock %}
+{% block page_heading %}Projects Dashboard{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--text-dark); margin: 0; letter-spacing: -0.02em;">
+      MEP Project Sites Directory
+    </h2>
+    <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.3rem 0 0 0;">
+      Multi-project overview featuring live defect KPIs, lead engineers, and quality clearance benchmarks.
+    </p>
+  </div>
+  <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+    <form method="get" action="{% url 'projects_list' %}" style="display: flex; gap: 0.5rem;">
+      <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search site or engineer..." style="width: 220px; padding: 0.5rem 0.85rem; font-size: 0.82rem;">
+      <button type="submit" class="btn-skydash btn-skydash-outline btn-skydash-sm">Search</button>
+      {% if query %}
+      <a href="{% url 'projects_list' %}" class="btn-skydash btn-skydash-outline btn-skydash-sm">Clear</a>
+      {% endif %}
+    </form>
+    <button type="button" class="btn-skydash btn-skydash-primary" onclick="openModal('createProjectModal')">
+      <i class="fa-solid fa-plus"></i>
+      <span>New Project</span>
+    </button>
+  </div>
+</div>
+
+<!-- Multi-Project Grid View -->
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.5rem;">
+  {% for p in projects %}
+  <div class="skydash-card" style="margin-bottom: 0; display: flex; flex-direction: column;">
+    <!-- Project Header -->
+    <div class="skydash-card-header" style="background: #FAFBFD; padding: 1.15rem 1.4rem;">
+      <div>
+        <h3 class="skydash-card-title" style="font-size: 1.1rem;">
+          <i class="fa-solid fa-building" style="color: var(--skydash-primary);"></i>
+          <span>{{ p.name }}</span>
+        </h3>
+        <span style="font-size: 0.75rem; color: var(--text-body); margin-top: 3px; display: block;">
+          Initialized {{ p.date_created|date:"M d, Y" }} &bull; PM: <strong style="color: var(--text-dark);">{{ p.pm_name }}</strong>
+        </span>
+      </div>
+      <span class="badge-status badge-cleared" style="font-size: 0.74rem;">
+        {{ p.total_floors }} Floors
+      </span>
+    </div>
+
+    <div class="skydash-card-body" style="padding: 1.35rem; display: flex; flex-direction: column; flex-grow: 1;">
+      <!-- Project KPI Cards: 4 Skydash Metric Blocks -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.65rem; margin-bottom: 1.25rem;">
+        <!-- KPI 1: Total Defects -->
+        <a href="{% url 'project_detail' p.id %}?tab=daily" style="text-decoration: none; background: #F5F7FF; border: 1px solid #EBF0F5; border-radius: var(--radius-sm); padding: 0.75rem 0.5rem; text-align: center; transition: all 0.2s ease;">
+          <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: #79788D; letter-spacing: 0.04em;">Total</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: var(--skydash-primary); line-height: 1.2; margin-top: 2px;">{{ p.total_inspections }}</div>
+          <div style="font-size: 0.65rem; color: var(--text-body);">Defects</div>
+        </a>
+
+        <!-- KPI 2: Open NCRs -->
+        <a href="{% url 'project_detail' p.id %}?tab=ncr" style="text-decoration: none; background: var(--skydash-danger-light); border: 1px solid #ffd2d2; border-radius: var(--radius-sm); padding: 0.75rem 0.5rem; text-align: center; transition: all 0.2s ease;">
+          <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--skydash-danger); letter-spacing: 0.04em;">Open NCR</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: var(--skydash-danger); line-height: 1.2; margin-top: 2px;">{{ p.open_ncr_count }}</div>
+          <div style="font-size: 0.65rem; color: var(--skydash-danger);">Severe</div>
+        </a>
+
+        <!-- KPI 3: Pending Clearances -->
+        <a href="{% url 'project_detail' p.id %}?tab=pending" style="text-decoration: none; background: var(--skydash-warning-light); border: 1px solid #ffe699; border-radius: var(--radius-sm); padding: 0.75rem 0.5rem; text-align: center; transition: all 0.2s ease;">
+          <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: #b8860b; letter-spacing: 0.04em;">Pending</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: #b8860b; line-height: 1.2; margin-top: 2px;">{{ p.pending_count }}</div>
+          <div style="font-size: 0.65rem; color: #b8860b;">Rework</div>
+        </a>
+
+        <!-- KPI 4: Given Clearances -->
+        <a href="{% url 'project_detail' p.id %}?tab=cleared" style="text-decoration: none; background: var(--skydash-success-light); border: 1px solid #c8ecc8; border-radius: var(--radius-sm); padding: 0.75rem 0.5rem; text-align: center; transition: all 0.2s ease;">
+          <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: var(--skydash-success); letter-spacing: 0.04em;">Cleared</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: var(--skydash-success); line-height: 1.2; margin-top: 2px;">{{ p.clearance_count }}</div>
+          <div style="font-size: 0.65rem; color: var(--skydash-success);">Passed</div>
+        </a>
+      </div>
+
+      <!-- Engineering Leads Strip -->
+      <div style="background: #FAFBFD; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.75rem 0.85rem; margin-bottom: 1.15rem; font-size: 0.78rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div>
+            <span style="color: var(--text-body); font-size: 0.7rem; display: block;">HVAC Lead:</span>
+            <strong style="color: var(--text-dark);"><i class="fa-solid fa-fan" style="color: var(--dept-hvac); width: 14px;"></i> {{ p.hvac_lead }}</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-body); font-size: 0.7rem; display: block;">Mechanical Lead:</span>
+            <strong style="color: var(--text-dark);"><i class="fa-solid fa-gears" style="color: var(--dept-plumbing); width: 14px;"></i> {{ p.mechanical_lead }}</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-body); font-size: 0.7rem; display: block;">Electrical Lead:</span>
+            <strong style="color: var(--text-dark);"><i class="fa-solid fa-bolt" style="color: var(--dept-electrical); width: 14px;"></i> {{ p.electrical_lead }}</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-body); font-size: 0.7rem; display: block;">Total Levels:</span>
+            <strong style="color: var(--text-dark);"><i class="fa-solid fa-stairs" style="color: var(--skydash-primary); width: 14px;"></i> {{ p.total_floors }} Floors</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clearance Rate Bar -->
+      <div style="margin-top: auto; padding-top: 0.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; font-size: 0.8rem;">
+          <span style="color: var(--text-body);">Clearance Progress</span>
+          <strong style="color: var(--skydash-success);">{{ p.clearance_rate }}% Pass Rate</strong>
+        </div>
+        <div class="skydash-progress" style="height: 7px; margin-bottom: 1.25rem;">
+          <div class="skydash-progress-fill" style="width: {{ p.clearance_rate }}%; background-color: var(--skydash-success);"></div>
+        </div>
+
+        <!-- Action Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+          <div style="display: flex; gap: 0.4rem;">
+            <a href="{% url 'inspection_create' %}?project={{ p.id }}" class="btn-skydash btn-skydash-outline btn-skydash-sm" title="Log Defect Inspection">
+              <i class="fa-solid fa-plus"></i> Defect
+            </a>
+            <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="color: var(--skydash-danger); border-color: #ffd2d2;" onclick="openDeleteSiteModal('{{ p.id }}', '{{ p.name|escapejs }}', {{ p.total_floors }}, {{ p.total_inspections }})" title="Delete Project Site">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+          <a href="{% url 'project_detail' p.id %}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+            <span>Open Workspace</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div style="grid-column: 1 / -1; padding: 3.5rem 1.5rem; background: #fff; border-radius: var(--radius-xl); text-align: center; border: 1px solid var(--border-light);">
+    <i class="fa-solid fa-city" style="font-size: 2.8rem; color: #b2b9c5; margin-bottom: 0.75rem; display: block;"></i>
+    <h3 style="margin: 0; color: var(--text-dark); font-weight: 800; font-size: 1.25rem;">No Projects in Directory</h3>
+    <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.5rem 0 1.25rem 0;">Get started by initializing a new project site or loading sample MEP records.</p>
+    <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+      <a href="{% url 'seed_demo_data' %}" class="btn-skydash btn-skydash-outline">
+        <i class="fa-solid fa-database"></i> Reload Sample Data
+      </a>
+      <button type="button" class="btn-skydash btn-skydash-primary" onclick="openModal('createProjectModal')">
+        <i class="fa-solid fa-plus"></i> Initialize First Project
+      </button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Modal: Create New Project -->
+<div class="mep-modal-backdrop" id="createProjectModal">
+  <div class="mep-modal">
+    <div class="skydash-card-header">
+      <h3 class="skydash-card-title">
+        <i class="fa-solid fa-building" style="color: var(--skydash-primary);"></i>
+        <span>Initialize New MEP Project Site</span>
+      </h3>
+      <button type="button" onclick="closeModal('createProjectModal')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+    <form method="post" action="{% url 'projects_list' %}">
+      {% csrf_token %}
+      <div class="skydash-card-body">
+        <div class="form-group" style="margin-bottom: 1.1rem;">
+          <label class="form-label">Project Name / Site Code</label>
+          {{ form.name }}
+          {{ form.name.errors }}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.1rem;">
+          <div class="form-group">
+            <label class="form-label">Project Manager (PM) Name</label>
+            {{ form.pm_name }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total Floors / Levels</label>
+            {{ form.total_floors }}
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.1rem;">
+          <div class="form-group">
+            <label class="form-label">Mechanical Lead Engineer</label>
+            {{ form.mechanical_lead }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Electrical Lead Engineer</label>
+            {{ form.electrical_lead }}
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.1rem;">
+          <label class="form-label">HVAC Lead Engineer</label>
+          {{ form.hvac_lead }}
+        </div>
+      </div>
+      <div style="padding: 1.1rem 1.6rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.65rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('createProjectModal')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary">Save Project</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Delete Project Site (Password Protected) -->
+<div class="mep-modal-backdrop" id="modalDeleteSite">
+  <div class="mep-modal" style="max-width: 530px;">
+    <div class="skydash-card-header" style="background: #FFF5F5; border-bottom: 1px solid #FFD2D2; padding: 1.15rem 1.4rem;">
+      <div>
+        <h3 class="skydash-card-title" style="color: var(--skydash-danger); margin: 0; font-size: 1.15rem;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Delete Project Site</span>
+        </h3>
+        <span style="font-size: 0.74rem; color: #b91c1c; margin-top: 2px; display: block;">
+          Irreversible Action &bull; Password Verification Required
+        </span>
+      </div>
+      <button type="button" onclick="closeModal('modalDeleteSite')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" id="deleteSiteForm" action="">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'projects_list' %}">
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        
+        <p style="font-size: 0.86rem; color: var(--text-dark); margin: 0 0 1rem 0; line-height: 1.5;">
+          Are you sure you want to delete project site <strong id="deleteSiteNameLabel" style="color: var(--skydash-danger);"></strong>?
+        </p>
+
+        <!-- Project Destruction Impact Metric Badges -->
+        <div style="background: #FFF5F5; border: 1px solid #FFD2D2; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.15rem;">
+          <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #b91c1c; margin-bottom: 0.5rem; letter-spacing: 0.04em;">
+            Data That Will Be Permanently Removed:
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; font-size: 0.78rem;">
+            <div>
+              <span style="color: #64748b;">Levels / Floors:</span>
+              <strong id="deleteSiteFloorCount" style="color: var(--text-dark);">0 Levels</strong>
+            </div>
+            <div>
+              <span style="color: #64748b;">Total Defect Records:</span>
+              <strong id="deleteSiteDefectCount" style="color: var(--skydash-danger);">0 Records</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confirmation Checkbox -->
+        <div style="margin-bottom: 1.15rem;">
+          <label style="display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.78rem; font-weight: 700; color: #991b1b; cursor: pointer;">
+            <input type="checkbox" required class="form-check-input" style="margin-top: 2px;">
+            <span>I understand that this action is permanent and all QA/QC milestone tracking and defect history for this site will be wiped.</span>
+          </label>
+        </div>
+
+        <!-- Password Confirmation Input -->
+        <div style="margin-bottom: 0.5rem;">
+          <label class="form-label" style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">
+            <i class="fa-solid fa-lock"></i> Enter Your Password to Authorize Site Deletion <span style="color: var(--skydash-danger);">*</span>
+          </label>
+          <input type="password" name="password" id="deleteSitePasswordInput" class="form-control" placeholder="Enter your current login password" required autocomplete="current-password">
+          <div style="font-size: 0.72rem; color: var(--text-body); margin-top: 0.3rem;">
+            You must enter your account password before this project site can be deleted.
+          </div>
+        </div>
+
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.65rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalDeleteSite')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary" style="background: var(--skydash-danger); border-color: var(--skydash-danger); font-weight: 800;">
+          <i class="fa-solid fa-skull-crossbones"></i> Confirm & Delete Entire Site
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openDeleteSiteModal(projectId, projectName, floorCount, inspectionCount) {
+  const form = document.getElementById('deleteSiteForm');
+  if (form) form.action = `/projects/${projectId}/delete/`;
+  
+  const nameLabel = document.getElementById('deleteSiteNameLabel');
+  if (nameLabel) nameLabel.textContent = projectName;
+  
+  const floorBadge = document.getElementById('deleteSiteFloorCount');
+  if (floorBadge) floorBadge.textContent = `${floorCount} Levels`;
+  
+  const defectBadge = document.getElementById('deleteSiteDefectCount');
+  if (defectBadge) defectBadge.textContent = `${inspectionCount} Records`;
+  
+  const passInput = document.getElementById('deleteSitePasswordInput');
+  if (passInput) passInput.value = '';
+  
+  openModal('modalDeleteSite');
+}
+</script>
+{% endblock %}

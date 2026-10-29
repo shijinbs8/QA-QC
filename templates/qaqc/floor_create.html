@@ -1,0 +1,403 @@
+{% extends 'qaqc/base.html' %}
+
+{% block title %}Create Level & Generate Units &bull; {{ project.name }}{% endblock %}
+{% block page_heading %}Floor & Unit Generator{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <div style="font-size: 0.8rem; font-weight: 700; color: var(--skydash-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">
+      <a href="{% url 'project_detail' project.id %}" style="color: inherit; text-decoration: none;">
+        <i class="fa-solid fa-arrow-left"></i> Back to {{ project.name }}
+      </a>
+    </div>
+    <h2 style="font-size: 1.45rem; font-weight: 800; color: var(--text-dark); margin: 0; letter-spacing: -0.02em;">
+      <i class="fa-solid fa-layer-group" style="color: var(--skydash-primary); margin-right: 0.4rem;"></i>
+      Create Floor & Auto-Generate Apartments
+    </h2>
+    <p style="font-size: 0.86rem; color: var(--text-body); margin: 0.25rem 0 0 0;">
+      Define level parameters, automatically create sequential apartment units, configure common areas, and initialize milestone tracking.
+    </p>
+  </div>
+</div>
+
+<form method="post" action="{% url 'floor_create' project.id %}" id="floorCreateForm">
+  {% csrf_token %}
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;">
+    
+    <!-- LEFT COLUMN: FORM CONTROLS -->
+    <div class="skydash-card" style="margin-bottom: 0;">
+      <div class="skydash-card-header" style="background: #FAFBFD; padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--border-light);">
+        <h3 class="skydash-card-title" style="font-size: 1.05rem; margin: 0;">
+          <i class="fa-solid fa-sliders" style="color: var(--skydash-primary);"></i>
+          <span>Floor Configuration</span>
+        </h3>
+        <span style="font-size: 0.74rem; font-weight: 700; color: var(--skydash-primary); background: rgba(75, 73, 172, 0.1); padding: 3px 8px; border-radius: 12px;">
+          Transaction Safe
+        </span>
+      </div>
+
+      <div class="skydash-card-body" style="padding: 1.4rem;">
+        
+        <!-- Floor Name / Number -->
+        <div style="margin-bottom: 1.15rem;">
+          <label class="form-label" for="id_floor_number" style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.35rem; display: block;">
+            Floor Name / Number <span style="color: var(--skydash-danger);">*</span>
+          </label>
+          {{ form.floor_number }}
+          <div style="font-size: 0.73rem; color: var(--text-body); margin-top: 0.25rem;">
+            Examples: <code>Floor 05</code>, <code>Floor 01</code>, <code>Floor 12</code>, <code>Basement 1</code>, <code>Podium 1</code>
+          </div>
+          {% if form.floor_number.errors %}
+            <div style="color: var(--skydash-danger); font-size: 0.76rem; margin-top: 0.2rem;">{{ form.floor_number.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Floor Type -->
+        <div style="margin-bottom: 1.15rem;">
+          <label class="form-label" for="id_floor_type" style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.35rem; display: block;">
+            Floor Classification Type <span style="color: var(--skydash-danger);">*</span>
+          </label>
+          {{ form.floor_type }}
+          <div style="font-size: 0.73rem; color: var(--text-body); margin-top: 0.25rem;">
+            Controls auto-prefix rules (e.g. Basement → <code>B1-</code>, Podium → <code>P1-</code>, Typical → <code>05</code>).
+          </div>
+          {% if form.floor_type.errors %}
+            <div style="color: var(--skydash-danger); font-size: 0.76rem; margin-top: 0.2rem;">{{ form.floor_type.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Number of Apartments & Starting Index -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.15rem;">
+          <div>
+            <label class="form-label" for="id_apartment_count" style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.35rem; display: block;">
+              Apartment Count <span style="color: var(--skydash-danger);">*</span>
+            </label>
+            {{ form.apartment_count }}
+            <div style="font-size: 0.72rem; color: var(--text-body); margin-top: 0.25rem;">
+              Set <code>0</code> if common areas only.
+            </div>
+            {% if form.apartment_count.errors %}
+              <div style="color: var(--skydash-danger); font-size: 0.76rem; margin-top: 0.2rem;">{{ form.apartment_count.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="form-label" for="id_starting_number" style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.35rem; display: block;">
+              Starting Number <span style="color: var(--skydash-danger);">*</span>
+            </label>
+            {{ form.starting_number }}
+            <div style="font-size: 0.72rem; color: var(--text-body); margin-top: 0.25rem;">
+              Typically <code>1</code> (generates 01 to N).
+            </div>
+            {% if form.starting_number.errors %}
+              <div style="color: var(--skydash-danger); font-size: 0.76rem; margin-top: 0.2rem;">{{ form.starting_number.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Custom Prefix (Optional Override) -->
+        <div style="margin-bottom: 1.35rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label class="form-label" for="id_numbering_prefix" style="font-size: 0.82rem; font-weight: 700; color: var(--text-dark); margin: 0;">
+              Apartment Number Prefix (Optional Override)
+            </label>
+            <span id="autoDetectedPrefixBadge" style="font-size: 0.7rem; font-weight: 800; background: #eef2ff; color: var(--skydash-primary); padding: 2px 7px; border-radius: 4px;">
+              Auto: <span id="detectedPrefixText">05</span>
+            </span>
+          </div>
+          {{ form.numbering_prefix }}
+          <div style="font-size: 0.73rem; color: var(--text-body); margin-top: 0.25rem;">
+            Leave blank to use the floor number automatically (e.g. <code>05</code> for Floor 05, <code>B1-</code> for Basement 1).
+          </div>
+          {% if form.numbering_prefix.errors %}
+            <div style="color: var(--skydash-danger); font-size: 0.76rem; margin-top: 0.2rem;">{{ form.numbering_prefix.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Section 3: Common Areas -->
+        <div style="border-top: 1px solid var(--border-light); padding-top: 1.15rem; margin-bottom: 1.35rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div>
+              <span style="font-size: 0.85rem; font-weight: 800; color: var(--text-dark); display: block;">
+                <i class="fa-solid fa-cube" style="color: #6f42c1;"></i> Common Areas
+              </span>
+              <span style="font-size: 0.72rem; color: var(--text-body);">
+                Common service areas are stored in Room model but <strong>not counted as apartments</strong>.
+              </span>
+            </div>
+            <div style="display: flex; gap: 0.4rem;">
+              <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.7rem; padding: 2px 8px;" onclick="toggleAllCommonAreas(true)">
+                Select All
+              </button>
+              <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.7rem; padding: 2px 8px;" onclick="toggleAllCommonAreas(false)">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <!-- Common Areas Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.5rem; background: #FAFBFD; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light); max-height: 190px; overflow-y: auto;">
+            {% for ca in standard_common_areas %}
+            <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 600; color: var(--text-dark); cursor: pointer; margin: 0; user-select: none;">
+              <input type="checkbox" name="common_areas" value="{{ ca }}" class="form-check-input common-area-check" onchange="updateLivePreview()" {% if ca in 'Lift Lobby,Corridor,Garbage Room,Staircase' %}checked{% endif %}>
+              <span>{{ ca }}</span>
+            </label>
+            {% endfor %}
+          </div>
+
+          <!-- Custom Common Areas Input -->
+          <div style="margin-top: 0.75rem;">
+            <label class="form-label" for="id_custom_common_areas" style="font-size: 0.78rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.25rem; display: block;">
+              Additional Custom Common Areas (Optional)
+            </label>
+            {{ form.custom_common_areas }}
+            <div style="font-size: 0.71rem; color: var(--text-body); margin-top: 0.2rem;">
+              Separate multiple areas with commas (e.g. <code>Prayer Room, BMS Control, Storage</code>)
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; padding-top: 0.5rem;">
+          <a href="{% url 'project_detail' project.id %}" class="btn-skydash btn-skydash-outline">Cancel</a>
+          <button type="submit" class="btn-skydash btn-skydash-primary" style="padding: 0.6rem 1.4rem; font-weight: 800;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Create Floor & Generate Units
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: DYNAMIC LIVE PREVIEW CARD -->
+    <div style="position: sticky; top: 1rem;">
+      <div class="skydash-card" style="border: 2px solid #D8E0FF; box-shadow: 0 8px 24px rgba(75, 73, 172, 0.08); margin-bottom: 0;">
+        <div class="skydash-card-header" style="background: linear-gradient(135deg, #F8F9FE 0%, #EEF2FF 100%); padding: 1.15rem 1.4rem; border-bottom: 1px solid #D8E0FF;">
+          <div>
+            <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--skydash-primary); letter-spacing: 0.05em;">
+              Live Interactive Preview
+            </div>
+            <h3 class="skydash-card-title" style="font-size: 1.15rem; color: var(--text-dark); margin: 0.15rem 0 0 0;" id="previewFloorTitle">
+              Floor 05 (Typical Floor)
+            </h3>
+          </div>
+          <span class="badge-status badge-cleared" id="previewTotalRoomsBadge" style="font-size: 0.8rem; font-weight: 800; padding: 4px 10px;">
+            20 Rooms Total
+          </span>
+        </div>
+
+        <div class="skydash-card-body" style="padding: 1.35rem;">
+          <!-- Metrics Breakdown Strip -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem; margin-bottom: 1.25rem;">
+            <div style="background: #F5F7FF; border: 1px solid #EBF0F5; border-radius: var(--radius-sm); padding: 0.75rem; text-align: center;">
+              <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: #79788D;">Prefix</div>
+              <div style="font-size: 1.25rem; font-weight: 800; color: var(--skydash-primary); margin-top: 2px;" id="previewPrefixVal">05</div>
+              <div style="font-size: 0.65rem; color: var(--text-body);">Auto-derived</div>
+            </div>
+
+            <div style="background: #EEF8FF; border: 1px solid #CDE7FE; border-radius: var(--radius-sm); padding: 0.75rem; text-align: center;">
+              <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: #1E6091;">Apartments</div>
+              <div style="font-size: 1.25rem; font-weight: 800; color: #023E8A; margin-top: 2px;" id="previewAptCountVal">16</div>
+              <div style="font-size: 0.65rem; color: #1E6091;">Units Generated</div>
+            </div>
+
+            <div style="background: #FAF5FF; border: 1px solid #E9D8FD; border-radius: var(--radius-sm); padding: 0.75rem; text-align: center;">
+              <div style="font-size: 0.68rem; font-weight: 800; text-transform: uppercase; color: #6B46C1;">Common Areas</div>
+              <div style="font-size: 1.25rem; font-weight: 800; color: #6B46C1; margin-top: 2px;" id="previewCaCountVal">4</div>
+              <div style="font-size: 0.65rem; color: #6B46C1;">Service Spaces</div>
+            </div>
+          </div>
+
+          <!-- Section A: Generated Apartment Rooms -->
+          <div style="margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">
+                <i class="fa-solid fa-door-open" style="color: var(--skydash-primary);"></i> Generated Apartment Numbers
+              </span>
+              <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-body);" id="previewAptRange">
+                0501 &rarr; 0516
+              </span>
+            </div>
+
+            <div id="previewApartmentsContainer" style="display: flex; flex-wrap: wrap; gap: 0.4rem; max-height: 170px; overflow-y: auto; background: #FAFBFD; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Section B: Common Areas -->
+          <div style="margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">
+                <i class="fa-solid fa-shield-halved" style="color: #6f42c1;"></i> Included Common Areas
+              </span>
+              <span style="font-size: 0.7rem; color: #6f42c1; font-weight: 700;">Not counted in apartment tally</span>
+            </div>
+
+            <div id="previewCommonAreasContainer" style="display: flex; flex-wrap: wrap; gap: 0.4rem; max-height: 120px; overflow-y: auto; background: #FAFBFD; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Milestone Guarantee Banner -->
+          <div style="background: #F4FBF4; border: 1px solid #C8ECC8; border-radius: var(--radius-sm); padding: 0.85rem; display: flex; align-items: flex-start; gap: 0.65rem;">
+            <i class="fa-solid fa-circle-check" style="color: var(--skydash-success); font-size: 1.1rem; margin-top: 2px;"></i>
+            <div style="font-size: 0.76rem; color: #235A23; line-height: 1.4;">
+              <strong>Automatic Milestone Initialization:</strong> Every generated apartment and common area room will be automatically initialized with all active MEP Milestone Definitions (Suspension, First Fix, Ducting, Pressure Test, Cabling, Sprinklers, etc.) set to status <strong>Pending</strong>.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</form>
+
+<script>
+// Real-time dynamic floor apartment numbering calculation
+function computePrefix(floorName, floorType, customPrefix) {
+  if (customPrefix && customPrefix.trim() !== '') {
+    return customPrefix.trim();
+  }
+  const str = (floorName || '').trim();
+  const digitMatch = str.match(/(\d+)/);
+  const digits = digitMatch ? digitMatch[1] : '';
+
+  if (floorType === 'Basement') {
+    return digits ? `B${digits}-` : 'B1-';
+  } else if (floorType === 'Podium') {
+    return digits ? `P${digits}-` : 'P1-';
+  } else if (floorType === 'Ground Floor') {
+    return 'G';
+  } else if (floorType === 'Mechanical Floor') {
+    return digits ? `M${digits}-` : 'M-';
+  } else if (floorType === 'Roof') {
+    return 'RF-';
+  } else {
+    // Typical or Custom
+    if (digits) {
+      return digits.length < 2 ? '0' + digits : digits;
+    }
+    const clean = str.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase();
+    return clean || '01';
+  }
+}
+
+function formatRoomNumber(prefix, num) {
+  const pad = num < 10 ? '0' + num : num;
+  return `${prefix}${pad}`;
+}
+
+function updateLivePreview() {
+  const floorName = document.getElementById('id_floor_number')?.value || 'Floor 05';
+  const floorType = document.getElementById('id_floor_type')?.value || 'Typical Floor';
+  const aptCount = parseInt(document.getElementById('id_apartment_count')?.value, 10) || 0;
+  const startNum = parseInt(document.getElementById('id_starting_number')?.value, 10) || 1;
+  const customPrefix = document.getElementById('id_numbering_prefix')?.value || '';
+
+  const prefix = computePrefix(floorName, floorType, customPrefix);
+
+  // Update badge & metric
+  const detectedBadge = document.getElementById('detectedPrefixText');
+  if (detectedBadge) detectedBadge.textContent = prefix;
+  const prefixVal = document.getElementById('previewPrefixVal');
+  if (prefixVal) prefixVal.textContent = prefix;
+
+  const floorTitle = document.getElementById('previewFloorTitle');
+  if (floorTitle) floorTitle.textContent = `${floorName || 'New Floor'} (${floorType})`;
+
+  // Generate apartment room list
+  const aptContainer = document.getElementById('previewApartmentsContainer');
+  aptContainer.innerHTML = '';
+  const aptNumbers = [];
+
+  if (aptCount > 0) {
+    for (let i = startNum; i < startNum + aptCount; i++) {
+      const roomNum = formatRoomNumber(prefix, i);
+      aptNumbers.push(roomNum);
+
+      const pill = document.createElement('span');
+      pill.style.cssText = 'background: #EEF2FF; color: #4B49AC; font-weight: 800; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; border: 1px solid #D8E0FF; display: inline-flex; align-items: center; gap: 4px;';
+      pill.innerHTML = `<i class="fa-solid fa-home" style="font-size: 0.65rem; opacity: 0.7;"></i> ${roomNum}`;
+      aptContainer.appendChild(pill);
+    }
+  } else {
+    aptContainer.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-body); font-style: italic;">No apartments generated (0 units). Floor will contain common service areas only.</span>';
+  }
+
+  // Common Areas list
+  const caChecks = document.querySelectorAll('.common-area-check:checked');
+  const caContainer = document.getElementById('previewCommonAreasContainer');
+  caContainer.innerHTML = '';
+  const caList = [];
+
+  caChecks.forEach(cb => {
+    caList.push(cb.value);
+  });
+
+  const customCaVal = document.getElementById('id_custom_common_areas')?.value || '';
+  if (customCaVal.trim() !== '') {
+    customCaVal.split(',').forEach(item => {
+      const trimmed = item.trim();
+      if (trimmed && !caList.includes(trimmed)) {
+        caList.push(trimmed);
+      }
+    });
+  }
+
+  if (caList.length > 0) {
+    caList.forEach(ca => {
+      const caPill = document.createElement('span');
+      caPill.style.cssText = 'background: #FAF5FF; color: #6B46C1; font-weight: 700; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; border: 1px solid #E9D8FD; display: inline-flex; align-items: center; gap: 4px;';
+      caPill.innerHTML = `<i class="fa-solid fa-cube" style="font-size: 0.65rem; opacity: 0.7;"></i> ${ca}`;
+      caContainer.appendChild(caPill);
+    });
+  } else {
+    caContainer.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-body); font-style: italic;">No common areas selected.</span>';
+  }
+
+  // Update counters
+  document.getElementById('previewAptCountVal').textContent = aptNumbers.length;
+  document.getElementById('previewCaCountVal').textContent = caList.length;
+  const totalRooms = aptNumbers.length + caList.length;
+  document.getElementById('previewTotalRoomsBadge').textContent = `${totalRooms} Total Rooms`;
+
+  const aptRangeEl = document.getElementById('previewAptRange');
+  if (aptRangeEl) {
+    if (aptNumbers.length > 0) {
+      aptRangeEl.textContent = `${aptNumbers[0]} → ${aptNumbers[aptNumbers.length - 1]}`;
+    } else {
+      aptRangeEl.textContent = 'None';
+    }
+  }
+}
+
+function toggleAllCommonAreas(check) {
+  document.querySelectorAll('.common-area-check').forEach(cb => {
+    cb.checked = check;
+  });
+  updateLivePreview();
+}
+
+// Attach event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  const inputs = ['id_floor_number', 'id_floor_type', 'id_apartment_count', 'id_starting_number', 'id_numbering_prefix', 'id_custom_common_areas'];
+  inputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', updateLivePreview);
+      el.addEventListener('change', updateLivePreview);
+    }
+  });
+
+  // Pre-fill initial defaults if fields are empty
+  const floorNumInput = document.getElementById('id_floor_number');
+  if (floorNumInput && !floorNumInput.value) {
+    floorNumInput.value = 'Floor 05';
+  }
+
+  updateLivePreview();
+});
+</script>
+{% endblock %}

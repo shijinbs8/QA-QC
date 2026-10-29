@@ -1,0 +1,277 @@
+{% extends 'qaqc/base.html' %}
+
+{% block title %}Defect #{{ inspection.id }} &bull; Skydash MEP QA/QC{% endblock %}
+{% block page_heading %}Defect Inspection #{{ inspection.id }}{% endblock %}
+
+{% block content %}
+<!-- Top Header & Quick Status Actions -->
+<div class="skydash-card" style="margin-bottom: 1.25rem;">
+  <div class="skydash-card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1.25rem 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+      <span class="badge-dept dept-{{ inspection.department|lower }}" style="font-size: 0.88rem; padding: 0.4rem 0.8rem;">
+        {% if inspection.department == 'HVAC' %}<i class="fa-solid fa-fan"></i>
+        {% elif inspection.department == 'Plumbing' %}<i class="fa-solid fa-faucet-drip"></i>
+        {% elif inspection.department == 'Electrical' %}<i class="fa-solid fa-bolt"></i>
+        {% else %}<i class="fa-solid fa-fire-extinguisher"></i>{% endif %}
+        {{ inspection.department }}
+      </span>
+
+      <div>
+        <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--text-dark); margin: 0;">
+          {{ inspection.project.name }} &bull; Level {{ inspection.floor_number }}{% if inspection.apartment_number %} ({{ inspection.apartment_number }}){% endif %}
+        </h2>
+        <span style="font-size: 0.78rem; color: var(--text-body);">
+          Recorded {{ inspection.date_recorded|date:"F d, Y - H:i" }} UTC
+        </span>
+      </div>
+    </div>
+
+    <!-- Live Status & Quick Actions -->
+    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+      <span id="currentStatusBadge" class="badge-status {{ inspection.status_badge_class }}" style="font-size: 0.82rem; padding: 0.4rem 0.85rem;">
+        {{ inspection.status }}
+      </span>
+
+      <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+        <button type="button" class="btn-skydash btn-skydash-success btn-skydash-sm" onclick="updateStatus('Given Clearance')">
+          <i class="fa-solid fa-check"></i> Give Clearance
+        </button>
+        <button type="button" class="btn-skydash btn-skydash-danger btn-skydash-sm" onclick="updateStatus('Open NCR')">
+          <i class="fa-solid fa-triangle-exclamation"></i> Open NCR
+        </button>
+        <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" onclick="updateStatus('Pending Clearance')">
+          <i class="fa-solid fa-clock-rotate-left"></i> Set Pending
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Details Layout: Left Info & Right Interactive Circle Marker Photo -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; align-items: start;">
+  <!-- Left Column: Defect specifications & site leads -->
+  <div>
+    <!-- Defect Description Card -->
+    <div class="skydash-card">
+      <div class="skydash-card-header">
+        <h3 class="skydash-card-title">
+          <i class="fa-solid fa-file-lines" style="color: var(--skydash-primary);"></i>
+          <span>Fault Description & Site Action</span>
+        </h3>
+      </div>
+      <div class="skydash-card-body">
+        <div style="font-size: 0.92rem; line-height: 1.6; color: var(--text-dark); background: #FAFBFD; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+          {{ inspection.faults_description }}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; font-size: 0.82rem;">
+          <div style="padding: 0.75rem; background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 8px;">
+            <span style="color: var(--text-body); font-size: 0.72rem; text-transform: uppercase; font-weight: 800; display: block;">Location</span>
+            <strong style="color: var(--text-dark);">Level {{ inspection.floor_number }}</strong>
+            {% if inspection.apartment_number %}
+            <div style="color: var(--text-body); font-size: 0.76rem;">{{ inspection.apartment_number }}</div>
+            {% endif %}
+          </div>
+
+          <div style="padding: 0.75rem; background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 8px;">
+            <span style="color: var(--text-body); font-size: 0.72rem; text-transform: uppercase; font-weight: 800; display: block;">Marked Points</span>
+            <strong style="color: var(--skydash-primary);">{{ inspection.overlay_count }} Defect Circles</strong>
+            <div style="color: var(--text-body); font-size: 0.76rem;">Tagged on site photo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Project Context & Engineering Leads -->
+    <div class="skydash-card">
+      <div class="skydash-card-header">
+        <h3 class="skydash-card-title">
+          <i class="fa-solid fa-helmet-safety" style="color: var(--skydash-primary);"></i>
+          <span>Engineering Discipline Leads</span>
+        </h3>
+        <a href="{% url 'project_detail' inspection.project.id %}" class="btn-skydash btn-skydash-outline btn-skydash-sm">
+          Project Site
+        </a>
+      </div>
+      <div class="skydash-card-body" style="font-size: 0.84rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
+            <span style="color: var(--text-body);">Project Manager:</span>
+            <strong style="color: var(--text-dark);"><i class="fa-solid fa-user-tie" style="color: var(--skydash-primary);"></i> {{ inspection.project.pm_name }}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
+            <span style="color: var(--text-body);">HVAC Lead:</span>
+            <strong style="color: var(--text-dark);"><i class="fa-solid fa-fan" style="color: var(--dept-hvac);"></i> {{ inspection.project.hvac_lead }}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle);">
+            <span style="color: var(--text-body);">Mechanical Lead:</span>
+            <strong style="color: var(--text-dark);"><i class="fa-solid fa-gears" style="color: var(--dept-plumbing);"></i> {{ inspection.project.mechanical_lead }}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-body);">Electrical Lead:</span>
+            <strong style="color: var(--text-dark);"><i class="fa-solid fa-bolt" style="color: var(--dept-electrical);"></i> {{ inspection.project.electrical_lead }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Marked Circles / Points on Image (NO AXIS) -->
+  <div>
+    <div class="skydash-card">
+      <div class="skydash-card-header">
+        <h3 class="skydash-card-title">
+          <i class="fa-solid fa-circle-dot" style="color: var(--skydash-danger);"></i>
+          <span>Photo Marked Defect Points</span>
+        </h3>
+        <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-body);">Tap circles for fault detail</span>
+      </div>
+
+      <div class="skydash-card-body">
+        <!-- Photo Mode Switcher Tabs if Annotated Image Exists -->
+        {% if inspection.annotated_image %}
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <button type="button" class="btn-skydash btn-skydash-primary btn-skydash-sm" id="btnShowAnnotated" onclick="switchPhotoView('annotated')">
+            <i class="fa-solid fa-paintbrush"></i> Annotated Markup Photo
+          </button>
+          <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" id="btnShowOriginal" onclick="switchPhotoView('original')">
+            <i class="fa-solid fa-camera"></i> Original Photo
+          </button>
+        </div>
+        {% endif %}
+
+        <!-- Viewport -->
+        <div class="marker-viewport-container" id="detailMarkerContainer">
+          {% if inspection.annotated_image %}
+            <img src="{{ inspection.annotated_image.url }}" alt="Annotated Site Inspection Photo" class="marker-target-image" id="annotatedDetailImage" style="display: block;">
+          {% endif %}
+
+          {% if inspection.original_image %}
+            <img src="{{ inspection.original_image.url }}" alt="Site Inspection Photo" class="marker-target-image" id="originalDetailImage" {% if inspection.annotated_image %}style="display: none;"{% endif %}>
+          {% elif not inspection.annotated_image %}
+            <!-- Visual zone placeholder if no image was uploaded -->
+            <div style="width: 100%; min-height: 380px; background: radial-gradient(circle at center, #232438 0%, #171822 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+              <div style="text-align: center; color: #94a3b8; padding: 2rem;">
+                <i class="fa-solid fa-camera" style="font-size: 2.8rem; color: #7978E9; margin-bottom: 0.75rem; display: block; opacity: 0.7;"></i>
+                <div style="font-weight: 800; color: #FFFFFF; font-size: 1.05rem;">Site Zone Overview</div>
+                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.25rem;">
+                  Level {{ inspection.floor_number }} &bull; {{ inspection.department }} Engineering Zone
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Legend / Marked Points List (NO AXIS) -->
+        <div style="margin-top: 1.25rem;">
+          <div style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark); margin-bottom: 0.6rem;">
+            <i class="fa-solid fa-list-ul" style="color: var(--skydash-primary);"></i> Tagged Defect & Badge Summary
+          </div>
+
+          <div id="detailMarkersList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const inspectionId = {{ inspection.id }};
+const savedMarkers = {{ overlay_json|safe }};
+const container = document.getElementById('detailMarkerContainer');
+const listContainer = document.getElementById('detailMarkersList');
+
+function renderDetailMarkers() {
+  container.querySelectorAll('.js-detail-circle').forEach(el => el.remove());
+
+  if (!savedMarkers || savedMarkers.length === 0) {
+    listContainer.innerHTML = '<div style="font-size:0.8rem; color:var(--text-body); font-style:italic;">No defect points were marked on this inspection.</div>';
+    return;
+  }
+
+  listContainer.innerHTML = savedMarkers.map((m, i) => {
+    // Drop clean circle marker (NO AXIS NUMBERS!)
+    const el = document.createElement('div');
+    const colorClass = m.color ? `circle-${m.color}` : 'circle-red';
+    el.className = `defect-circle-marker ${colorClass} js-detail-circle`;
+    el.style.left = m.x + '%';
+    el.style.top = m.y + '%';
+    el.textContent = i + 1;
+    el.title = `${m.label}`;
+    container.appendChild(el);
+
+    const colorBadge = m.color ? m.color.toUpperCase() : 'DEFECT';
+
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#FAFBFD; border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:0.65rem 0.95rem; font-size:0.82rem;">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <span style="width:22px; height:22px; background:${getMarkerColorCode(m.color)}; color:#fff; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:0.75rem;">${i+1}</span>
+          <strong style="color:var(--text-dark);">${m.label}</strong>
+        </div>
+        <span style="font-size:0.72rem; font-weight:700; color:${getMarkerColorCode(m.color)}; background:#fff; padding:2px 8px; border-radius:4px; border:1px solid var(--border-light);">
+          ${colorBadge}
+        </span>
+      </div>
+    `;
+  }).join('');
+}
+
+function switchPhotoView(mode) {
+  const annotImg = document.getElementById('annotatedDetailImage');
+  const origImg = document.getElementById('originalDetailImage');
+  const btnAnnot = document.getElementById('btnShowAnnotated');
+  const btnOrig = document.getElementById('btnShowOriginal');
+
+  if (mode === 'annotated') {
+    if (annotImg) annotImg.style.display = 'block';
+    if (origImg) origImg.style.display = 'none';
+    if (btnAnnot) btnAnnot.className = 'btn-skydash btn-skydash-primary btn-skydash-sm';
+    if (btnOrig) btnOrig.className = 'btn-skydash btn-skydash-outline btn-skydash-sm';
+  } else {
+    if (annotImg) annotImg.style.display = 'none';
+    if (origImg) origImg.style.display = 'block';
+    if (btnAnnot) btnAnnot.className = 'btn-skydash btn-skydash-outline btn-skydash-sm';
+    if (btnOrig) btnOrig.className = 'btn-skydash btn-skydash-primary btn-skydash-sm';
+  }
+}
+
+function getMarkerColorCode(color) {
+  if (color === 'red') return '#FF4747';
+  if (color === 'amber') return '#FFB64D';
+  if (color === 'blue') return '#248AFD';
+  if (color === 'green') return '#57B657';
+  return '#FF4747';
+}
+
+// Update status via AJAX
+async function updateStatus(newStatus) {
+  try {
+    const response = await fetch(`/api/inspections/${inspectionId}/status/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+    const result = await response.json();
+    if (result.success) {
+      const badge = document.getElementById('currentStatusBadge');
+      badge.textContent = result.status;
+      badge.className = `badge-status ${result.badge_class}`;
+      showToast(`Status updated to "${result.status}"`, 'success');
+    } else {
+      showToast(`Error: ${result.error}`, 'error');
+    }
+  } catch (err) {
+    showToast('Failed to update clearance status', 'error');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', renderDetailMarkers);
+</script>
+{% endblock %}

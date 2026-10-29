@@ -1,0 +1,1812 @@
+{% extends 'qaqc/base.html' %}
+
+{% block title %}{{ project.name }} Workspace &bull; Skydash MEP QA/QC{% endblock %}
+{% block page_heading %}{{ project.name }} Workspace{% endblock %}
+
+{% block content %}
+<!-- Project Master Header Card -->
+<div class="skydash-card" style="margin-bottom: 1.5rem;">
+  <div class="skydash-card-header" style="background: #FAFBFD; padding: 1.25rem 1.6rem;">
+    <div>
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--text-dark); margin: 0; letter-spacing: -0.02em;">
+          {{ project.name }}
+        </h2>
+        <span class="badge-status badge-cleared" style="font-size: 0.74rem;">
+          {{ project.total_floors }} Levels Total
+        </span>
+      </div>
+      <span style="font-size: 0.8rem; color: var(--text-body); margin-top: 4px; display: block;">
+        Site initialized {{ project.date_created|date:"F d, Y" }} &bull; PM: <strong style="color: var(--text-dark);">{{ project.pm_name }}</strong>
+      </span>
+    </div>
+
+    <div style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap;">
+      <a href="{% url 'projects_list' %}" class="btn-skydash btn-skydash-outline btn-skydash-sm">
+        &larr; Back to Projects
+      </a>
+      <a href="{% url 'inspection_create' %}?project={{ project.id }}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+        <i class="fa-solid fa-plus-circle"></i> Record Site Defect
+      </a>
+      <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="color: var(--skydash-danger); border-color: #ffd2d2;" onclick="openModal('modalDeleteProject')" title="Permanently delete this project site">
+        <i class="fa-solid fa-trash-can"></i> Delete Site
+      </button>
+    </div>
+  </div>
+
+  <div class="skydash-card-body" style="padding: 1.4rem;">
+    <!-- Project KPI Cards Grid (4 Skydash Metric Blocks) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.35rem;">
+      <!-- Total Defects -->
+      <div style="background: #F5F7FF; border: 1px solid #EBF0F5; border-radius: var(--radius-md); padding: 1rem; display: flex; align-items: center; gap: 0.85rem;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(75, 73, 172, 0.12); color: var(--skydash-primary); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+          <i class="fa-solid fa-clipboard-list"></i>
+        </div>
+        <div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: var(--text-dark); line-height: 1;">{{ all_inspections.count }}</div>
+          <div style="font-size: 0.74rem; font-weight: 700; color: #79788D; text-transform: uppercase; margin-top: 3px;">Total Defects</div>
+        </div>
+      </div>
+
+      <!-- Open NCRs -->
+      <div style="background: var(--skydash-danger-light); border: 1px solid #ffd2d2; border-radius: var(--radius-md); padding: 1rem; display: flex; align-items: center; gap: 0.85rem;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(255, 71, 71, 0.15); color: var(--skydash-danger); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: var(--skydash-danger); line-height: 1;">{{ ncr_inspections.count }}</div>
+          <div style="font-size: 0.74rem; font-weight: 700; color: var(--skydash-danger); text-transform: uppercase; margin-top: 3px;">Open NCRs</div>
+        </div>
+      </div>
+
+      <!-- Pending Clearances -->
+      <div style="background: var(--skydash-warning-light); border: 1px solid #ffe699; border-radius: var(--radius-md); padding: 1rem; display: flex; align-items: center; gap: 0.85rem;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(255, 193, 0, 0.18); color: #b8860b; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+        <div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: #b8860b; line-height: 1;">{{ pending_inspections.count }}</div>
+          <div style="font-size: 0.74rem; font-weight: 700; color: #b8860b; text-transform: uppercase; margin-top: 3px;">Pending</div>
+        </div>
+      </div>
+
+      <!-- Given Clearances -->
+      <div style="background: var(--skydash-success-light); border: 1px solid #c8ecc8; border-radius: var(--radius-md); padding: 1rem; display: flex; align-items: center; gap: 0.85rem;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(87, 182, 87, 0.18); color: var(--skydash-success); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: var(--skydash-success); line-height: 1;">{{ cleared_inspections.count }}</div>
+          <div style="font-size: 0.74rem; font-weight: 700; color: var(--skydash-success); text-transform: uppercase; margin-top: 3px;">Cleared</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leadership Row & Quality Pass Rate Gauge -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-top: 1px solid var(--border-light); padding-top: 1.15rem; font-size: 0.82rem;">
+      <div style="display: flex; gap: 1.25rem; flex-wrap: wrap;">
+        <div>
+          <span style="color: var(--text-body); font-size: 0.72rem; display: block;">HVAC Lead:</span>
+          <strong style="color: var(--text-dark);"><i class="fa-solid fa-fan" style="color: var(--dept-hvac);"></i> {{ project.hvac_lead }}</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-body); font-size: 0.72rem; display: block;">Mechanical Lead:</span>
+          <strong style="color: var(--text-dark);"><i class="fa-solid fa-gears" style="color: var(--dept-plumbing);"></i> {{ project.mechanical_lead }}</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-body); font-size: 0.72rem; display: block;">Electrical Lead:</span>
+          <strong style="color: var(--text-dark);"><i class="fa-solid fa-bolt" style="color: var(--dept-electrical);"></i> {{ project.electrical_lead }}</strong>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.75rem; min-width: 260px;">
+        <span style="color: var(--text-body); font-weight: 600;">Pass Rate:</span>
+        <div style="flex-grow: 1;">
+          <div class="skydash-progress" style="height: 8px;">
+            <div class="skydash-progress-fill" style="width: {{ project.clearance_rate }}%; background-color: var(--skydash-success);"></div>
+          </div>
+        </div>
+        <strong style="color: var(--skydash-success); font-weight: 800;">{{ project.clearance_rate }}%</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Phase 2 & Phase 5: Skydash Tabbed Workspace -->
+<div class="skydash-card">
+  <!-- Scrollable Tab Header -->
+  <div style="border-bottom: 1px solid var(--border-light); background: #FAFBFD; padding: 0 1rem; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;">
+    <div style="display: inline-flex; gap: 0.5rem; padding: 0.5rem 0;" role="tablist">
+      <!-- Tab 0: Floor & Room Inspection Matrix (Phase 5) -->
+      <a href="?tab=matrix&matrix_floor={{ selected_matrix_floor_id }}&category={{ selected_category }}" class="btn-skydash {% if active_tab == 'matrix' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px; font-weight: 800;">
+        <i class="fa-solid fa-table-cells"></i>
+        <span>Inspection Matrix</span>
+        <span style="background: rgba(0,0,0,0.15); padding: 1px 7px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;">{{ matrix_stats.completion_rate }}%</span>
+      </a>
+
+      <!-- Tab 1: Pending Clearances -->
+      <a href="?tab=pending" class="btn-skydash {% if active_tab == 'pending' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px;">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>1. Pending Clearances</span>
+        <span style="background: rgba(0,0,0,0.1); padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;">{{ pending_inspections.count }}</span>
+      </a>
+
+      <!-- Tab 2: Given Clearances -->
+      <a href="?tab=cleared" class="btn-skydash {% if active_tab == 'cleared' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px;">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>2. Given Clearances</span>
+        <span style="background: rgba(0,0,0,0.1); padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;">{{ cleared_inspections.count }}</span>
+      </a>
+
+      <!-- Tab 3: Damages / Improper Work -->
+      <a href="?tab=damages" class="btn-skydash {% if active_tab == 'damages' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px;">
+        <i class="fa-solid fa-wrench"></i>
+        <span>3. Damages / Improper Work</span>
+        <span style="background: rgba(0,0,0,0.1); padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;">{{ damages_inspections.count }}</span>
+      </a>
+
+      <!-- Tab 4: NCR Reports -->
+      <a href="?tab=ncr" class="btn-skydash {% if active_tab == 'ncr' %}btn-skydash-danger{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>4. NCR Reports</span>
+        <span style="background: rgba(0,0,0,0.15); padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;">{{ ncr_inspections.count }}</span>
+      </a>
+
+      <!-- Tab 5: Daily Inspection Findings -->
+      <a href="?tab=daily" class="btn-skydash {% if active_tab == 'daily' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px;">
+        <i class="fa-solid fa-calendar-days"></i>
+        <span>5. Daily Findings</span>
+        <span style="background: rgba(0,0,0,0.1); padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;">{{ all_inspections.count }}</span>
+      </a>
+
+      <!-- Tab 6: Floor Photo Gallery -->
+      <a href="?tab=gallery" class="btn-skydash {% if active_tab == 'gallery' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px;">
+        <i class="fa-solid fa-images"></i>
+        <span>6. Floor Photo Gallery</span>
+        <span style="background: rgba(0,0,0,0.1); padding: 1px 6px; border-radius: 10px; font-size: 0.7rem; font-weight: 800;">{{ gallery_inspections.count }}</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="skydash-card-body" style="padding: 1.25rem;">
+    <!-- ====================================================================
+         PHASE 5 TAB: DYNAMIC FLOOR & ROOM MILESTONE TRACKING & MATRIX ENGINE
+         ==================================================================== -->
+    {% if active_tab == 'matrix' %}
+      <div class="matrix-grid-card">
+        <!-- Filter Controls Bar -->
+        <div class="matrix-controls-bar" style="display: flex; flex-direction: column; gap: 0.85rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <div class="matrix-filter-group" style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+              <!-- Floor Filter Dropdown -->
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <label for="matrixFloorSelect" style="font-size: 0.76rem; font-weight: 800; color: var(--text-dark); margin: 0; white-space: nowrap;">
+                  <i class="fa-solid fa-layer-group" style="color: var(--skydash-primary);"></i> Floor:
+                </label>
+                <select id="matrixFloorSelect" class="form-select form-select-sm" style="min-width: 175px; font-weight: 700; border-radius: var(--radius-sm);" onchange="changeMatrixFilter('matrix_floor', this.value)">
+                  {% for fl in floors %}
+                    <option value="{{ fl.id }}" {% if current_matrix_floor and current_matrix_floor.id == fl.id %}selected{% endif %}>
+                      {{ fl.floor_number }} ({{ fl.rooms.count }} Rooms)
+                    </option>
+                  {% empty %}
+                    <option value="">No Floors Configured</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Floor Action Buttons -->
+              <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <button type="button" class="btn-skydash btn-skydash-primary btn-skydash-sm" onclick="openModal('modalCreateFloor')" title="Create a new floor and auto-generate apartments">
+                  <i class="fa-solid fa-plus"></i> <span>New Floor</span>
+                </button>
+                {% if current_matrix_floor %}
+                <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" onclick="openModal('modalEditFloor')" title="Edit floor details, adjust apartment count safely">
+                  <i class="fa-solid fa-pen-to-square"></i> <span>Edit Floor</span>
+                </button>
+                <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" onclick="openModal('modalAddCommonAreas')" title="Add common areas (Lift Lobby, Corridor, Shafts)">
+                  <i class="fa-solid fa-cube" style="color: #6f42c1;"></i> <span>+ Common Area</span>
+                </button>
+                <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" onclick="openModal('modalAddManualRoom')" title="Add single unit or room manually">
+                  <i class="fa-solid fa-door-open"></i> <span>+ Unit</span>
+                </button>
+                {% endif %}
+              </div>
+
+              <!-- Category Filter Dropdown -->
+              <div style="display: flex; align-items: center; gap: 0.4rem; margin-left: 0.35rem;">
+                <label for="matrixCategorySelect" style="font-size: 0.76rem; font-weight: 800; color: var(--text-dark); margin: 0; white-space: nowrap;">
+                  <i class="fa-solid fa-filter" style="color: var(--dept-hvac);"></i> Category:
+                </label>
+                <select id="matrixCategorySelect" class="form-select form-select-sm" style="min-width: 155px; font-weight: 700; border-radius: var(--radius-sm);" onchange="changeMatrixFilter('category', this.value)">
+                  <option value="ALL" {% if selected_category == 'ALL' %}selected{% endif %}>All MEP Categories</option>
+                  {% for cat_val, cat_label in categories %}
+                    <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>
+                      {{ cat_label }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Add Milestone Definition Button -->
+              <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" onclick="openModal('modalCreateMilestone')" title="Add milestone (e.g. Civil High Wall Closing, False Ceiling)">
+                <i class="fa-solid fa-flag-checkered" style="color: var(--skydash-primary);"></i> <span>+ Milestone</span>
+              </button>
+
+              <!-- Quick Add Defect for Selected Floor -->
+              {% if current_matrix_floor %}
+              <a href="{% url 'inspection_create' %}?project={{ project.id }}&floor={{ current_matrix_floor.id }}" class="btn-skydash btn-skydash-primary btn-skydash-sm" style="padding: 0.35rem 0.75rem; border-radius: var(--radius-sm);">
+                <i class="fa-solid fa-camera"></i> Record Defect
+              </a>
+              {% endif %}
+            </div>
+
+            <!-- Floor Level KPI Metrics -->
+            <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+              <span class="matrix-kpi-pill" style="background: #eaf7ea; color: #278827; border: 1px solid #57B657;" id="kpiDoneCount">
+                <i class="fa-solid fa-circle-check"></i> <strong id="kpiDoneVal">{{ matrix_stats.done_cells }}</strong> Done
+              </span>
+              <span class="matrix-kpi-pill" style="background: #fff9e6; color: #b8860b; border: 1px solid #FFC100;" id="kpiProgressCount">
+                <i class="fa-solid fa-hourglass-half"></i> <strong id="kpiProgressVal">{{ matrix_stats.in_progress_cells }}</strong> In Progress
+              </span>
+              <span class="matrix-kpi-pill" style="background: #ffebeb; color: #dc3545; border: 1px solid #FF4747;" id="kpiPendingCount">
+                <i class="fa-solid fa-clock"></i> <strong id="kpiPendingVal">{{ matrix_stats.pending_cells }}</strong> Pending
+              </span>
+              <span class="matrix-kpi-pill" style="background: #f1f3f5; color: #6c757d; border: 1px solid #ced4da;">
+                <strong id="kpiNaVal">{{ matrix_stats.na_cells }}</strong> N/A
+              </span>
+              <div style="min-width: 125px; display: flex; align-items: center; gap: 0.4rem; margin-left: 0.25rem;">
+                <div class="skydash-progress" style="height: 9px; flex-grow: 1; border-radius: 10px;">
+                  <div class="skydash-progress-fill" id="matrixProgressBar" style="width: {{ matrix_stats.completion_rate }}%; background: var(--skydash-success); border-radius: 10px;"></div>
+                </div>
+                <strong id="matrixProgressPct" style="font-size: 0.82rem; color: var(--skydash-success);">{{ matrix_stats.completion_rate }}%</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Room Type Filter Strip -->
+          {% if current_matrix_floor %}
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 0.65rem; font-size: 0.78rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-weight: 700; color: var(--text-body);">
+                <i class="fa-solid fa-building-user"></i> Level View:
+              </span>
+              <a href="?tab=matrix&matrix_floor={{ current_matrix_floor.id }}&category={{ selected_category }}&room_type=ALL"
+                 class="btn-skydash {% if room_type_filter == 'ALL' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" 
+                 style="font-size: 0.72rem; padding: 2px 9px; border-radius: 12px;">
+                All Spaces ({{ current_matrix_floor.total_rooms }})
+              </a>
+              <a href="?tab=matrix&matrix_floor={{ current_matrix_floor.id }}&category={{ selected_category }}&room_type=APARTMENT"
+                 class="btn-skydash {% if room_type_filter == 'APARTMENT' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" 
+                 style="font-size: 0.72rem; padding: 2px 9px; border-radius: 12px;">
+                <i class="fa-solid fa-door-open"></i> Apartments ({{ current_matrix_floor.total_apartments }})
+              </a>
+              <a href="?tab=matrix&matrix_floor={{ current_matrix_floor.id }}&category={{ selected_category }}&room_type=COMMON_AREA"
+                 class="btn-skydash {% if room_type_filter == 'COMMON_AREA' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" 
+                 style="font-size: 0.72rem; padding: 2px 9px; border-radius: 12px;">
+                <i class="fa-solid fa-cube" style="color: #6f42c1;"></i> Common Areas ({{ current_matrix_floor.total_common_areas }})
+              </a>
+            </div>
+
+            <div style="font-size: 0.74rem; color: var(--text-body);">
+              Floor Type: <strong style="color: var(--text-dark);">{{ current_matrix_floor.floor_type }}</strong> &bull; Prefix: <strong style="color: var(--skydash-primary);">{{ current_matrix_floor.numbering_prefix|default:"Auto" }}</strong>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Matrix Table Grid -->
+        <div class="matrix-grid-scroll-container">
+          {% if matrix_rows %}
+          <table class="matrix-table" id="roomMilestoneMatrix">
+            <thead>
+              <tr>
+                <th class="matrix-room-header">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>Room / Unit Zone</span>
+                    <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-body);">{{ matrix_rows|length }} Rooms</span>
+                  </div>
+                </th>
+                {% for ml in matrix_milestones %}
+                <th class="text-center" style="min-width: 145px;">
+                  <span class="matrix-col-cat-tag cat-tag-{{ ml.category|lower }}">{{ ml.category }}</span>
+                  <div style="font-weight: 800; font-size: 0.78rem; color: var(--text-dark);">{{ ml.name }}</div>
+                </th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in matrix_rows %}
+              <tr>
+                <!-- Room Sticky Column with Type Badge & Actions -->
+                <td class="matrix-room-cell">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                    <div>
+                      <div style="font-size: 0.84rem; color: var(--text-dark); display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                        {% if row.room.is_common_area %}
+                          <i class="fa-solid fa-cube" style="color: #6f42c1; font-size: 0.82rem;" title="Common Area"></i>
+                        {% else %}
+                          <i class="fa-solid fa-door-open" style="color: var(--skydash-primary); font-size: 0.82rem;" title="Apartment Unit"></i>
+                        {% endif %}
+                        <strong style="font-size: 0.82rem;">{{ row.room.room_number }}</strong>
+                        {% if row.room.is_common_area %}
+                          <span style="font-size: 0.62rem; background: #FAF5FF; color: #6B46C1; border: 1px solid #E9D8FD; border-radius: 4px; padding: 0 4px; font-weight: 700;">Service</span>
+                        {% else %}
+                          <span style="font-size: 0.62rem; background: #EEF2FF; color: #4B49AC; border: 1px solid #D8E0FF; border-radius: 4px; padding: 0 4px; font-weight: 700;">Apt</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.3rem;">
+                      <!-- Open Defect Count Badge -->
+                      {% if row.open_defects > 0 %}
+                        <a href="{% url 'inspection_create' %}?project={{ project.id }}&floor={{ current_matrix_floor.id }}&room={{ row.room.id }}" 
+                           class="badge-status badge-ncr" 
+                           title="{{ row.open_defects }} Open Defect(s) - Click to inspect or add snag"
+                           style="font-size: 0.68rem; padding: 2px 6px; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.2rem;">
+                          <i class="fa-solid fa-triangle-exclamation"></i> {{ row.open_defects }}
+                        </a>
+                      {% else %}
+                        <span class="badge-status badge-cleared" style="font-size: 0.64rem; padding: 2px 5px; opacity: 0.85;" title="0 Open Defects">
+                          <i class="fa-solid fa-check"></i> 0
+                        </span>
+                      {% endif %}
+
+                      <!-- Edit Room Number / Type -->
+                      <button type="button" 
+                              class="btn-skydash btn-skydash-outline" 
+                              style="padding: 2px 5px; font-size: 0.65rem; border-radius: 4px; color: var(--text-dark);" 
+                              title="Correct room number or change type"
+                              onclick="openEditRoomModal('{{ row.room.id }}', '{{ row.room.room_number|escapejs }}', '{{ row.room.room_type|escapejs }}')">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+
+                      <!-- Safe Delete Room -->
+                      <form method="post" action="{% url 'room_delete' row.room.id %}" style="display: inline;" onsubmit="return confirmRoomDelete('{{ row.room.room_number|escapejs }}', {{ row.total_defects }});">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="btn-skydash btn-skydash-outline" 
+                                style="padding: 2px 5px; font-size: 0.65rem; border-radius: 4px; color: {% if row.total_defects > 0 %}#cbd5e1{% else %}var(--skydash-danger){% endif %};" 
+                                title="{% if row.total_defects > 0 %}Cannot delete: has QA/QC history{% else %}Delete unused room{% endif %}">
+                          <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Milestone Cell Dropdowns -->
+                {% for cell in row.cells %}
+                <td class="text-center">
+                  {% if cell.status_obj %}
+                    <select class="milestone-matrix-select {{ cell.status_obj.badge_class }}"
+                            data-status-id="{{ cell.status_obj.id }}"
+                            data-room-name="{{ row.room.room_number }}"
+                            data-milestone-name="{{ cell.milestone.name }}"
+                            onchange="updateRoomMilestoneStatus(this)">
+                      {% for choice_val, choice_label in milestone_status_choices %}
+                        <option value="{{ choice_val }}" {% if cell.status_obj.status == choice_val %}selected{% endif %}>
+                          {{ choice_label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <div id="status-time-{{ cell.status_obj.id }}" style="font-size: 0.62rem; color: #9aa2b1; margin-top: 3px; font-family: 'JetBrains Mono', monospace;">
+                      {{ cell.status_obj.updated_at|date:"M d, H:i" }}
+                    </div>
+                  {% else %}
+                    <span style="color: #cbd5e1; font-size: 0.75rem;">-</span>
+                  {% endif %}
+                </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div style="padding: 3rem; text-align: center; color: var(--text-body);">
+            <i class="fa-solid fa-border-all" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 0.6rem; display: block;"></i>
+            <h4 style="margin: 0; color: var(--text-dark); font-weight: 800;">No Rooms Configured for Level {{ current_matrix_floor.floor_number|default:"Selected" }}</h4>
+            <p style="font-size: 0.84rem; color: var(--text-body); margin: 0.4rem 0 1.25rem 0;">Auto-generate apartment units, add common areas, or create rooms manually for this level.</p>
+            <div style="display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap;">
+              {% if current_matrix_floor %}
+              <button type="button" class="btn-skydash btn-skydash-primary" onclick="openModal('modalEditFloor')">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Generate Apartments
+              </button>
+              <button type="button" class="btn-skydash btn-skydash-outline" onclick="openModal('modalAddCommonAreas')">
+                <i class="fa-solid fa-cube" style="color: #6f42c1;"></i> Add Common Areas
+              </button>
+              <button type="button" class="btn-skydash btn-skydash-outline" onclick="openModal('modalAddManualRoom')">
+                <i class="fa-solid fa-plus"></i> Add Unit Manually
+              </button>
+              {% else %}
+              <button type="button" class="btn-skydash btn-skydash-primary" onclick="openModal('modalCreateFloor')">
+                <i class="fa-solid fa-plus"></i> Create First Floor
+              </button>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    <!-- ====================================================================
+         TAB 1: PENDING CLEARANCES
+         ==================================================================== -->
+    {% elif active_tab == 'pending' %}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-dark); margin: 0;">
+            <i class="fa-solid fa-clock-rotate-left" style="color: #b8860b;"></i>
+            Pending Clearances Awaiting Rework
+          </h3>
+          <span style="font-size: 0.8rem; color: var(--text-body);">Snags and defects currently unresolved by the trade contractor.</span>
+        </div>
+        <span class="badge-status badge-pending">{{ pending_inspections.count }} Pending Items</span>
+      </div>
+
+      {% if pending_inspections %}
+      <div class="skydash-table-responsive">
+        <table class="skydash-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Trade</th>
+              <th>Floor & Location</th>
+              <th>Fault / Non-Conformance Details</th>
+              <th>Markers</th>
+              <th>Quick Sign-off</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in pending_inspections %}
+            <tr>
+              <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; font-weight: 700;">#{{ item.id }}</td>
+              <td><span class="badge-dept dept-{{ item.department|lower }}">{{ item.department }}</span></td>
+              <td>
+                <strong style="color: var(--text-dark);">Level {{ item.floor_number }}</strong>
+                {% if item.apartment_number %}<div style="font-size: 0.74rem; color: var(--text-body);">{{ item.apartment_number }}</div>{% endif %}
+              </td>
+              <td>
+                <div style="max-width: 320px; font-size: 0.82rem; color: var(--text-body); line-height: 1.4;">
+                  {{ item.faults_description }}
+                </div>
+              </td>
+              <td>
+                {% if item.overlay_count %}
+                <span style="font-size: 0.72rem; font-weight: 700; color: var(--skydash-primary); background: var(--skydash-primary-light); padding: 2px 7px; border-radius: 6px;">
+                  <i class="fa-solid fa-circle-dot"></i> {{ item.overlay_count }} Circles
+                </span>
+                {% else %}
+                <span style="font-size: 0.72rem; color: #b2b9c5;">No Markers</span>
+                {% endif %}
+              </td>
+              <td>
+                <button type="button" class="btn-skydash btn-skydash-success btn-skydash-sm" onclick="quickClearItem({{ item.id }})" title="Give immediate QA/QC clearance">
+                  <i class="fa-solid fa-check"></i> Give Clearance
+                </button>
+              </td>
+              <td>
+                <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-outline btn-skydash-sm">
+                  Inspect
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div style="padding: 3rem; text-align: center; color: var(--text-body);">
+        <i class="fa-solid fa-circle-check" style="font-size: 2.5rem; color: var(--skydash-success); margin-bottom: 0.5rem; display: block;"></i>
+        <h4 style="margin: 0; color: var(--text-dark); font-weight: 800;">No Pending Clearances!</h4>
+        <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.4rem 0 1rem 0;">All recorded defects have passed inspection or been signed off.</p>
+        <a href="{% url 'inspection_create' %}?project={{ project.id }}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+          <i class="fa-solid fa-plus"></i> Log New Inspection
+        </a>
+      </div>
+      {% endif %}
+
+    <!-- ====================================================================
+         TAB 2: GIVEN CLEARANCES
+         ==================================================================== -->
+    {% elif active_tab == 'cleared' %}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-dark); margin: 0;">
+            <i class="fa-solid fa-circle-check" style="color: var(--skydash-success);"></i>
+            Approved Quality Clearances
+          </h3>
+          <span style="font-size: 0.8rem; color: var(--text-body);">Inspected installations verified and signed-off by QA/QC lead engineers.</span>
+        </div>
+        <span class="badge-status badge-cleared">{{ cleared_inspections.count }} Cleared Items</span>
+      </div>
+
+      {% if cleared_inspections %}
+      <div class="skydash-table-responsive">
+        <table class="skydash-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Trade</th>
+              <th>Floor & Unit</th>
+              <th>Cleared Non-Conformance Record</th>
+              <th>Clearance Stamp</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in cleared_inspections %}
+            <tr>
+              <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; font-weight: 700;">#{{ item.id }}</td>
+              <td><span class="badge-dept dept-{{ item.department|lower }}">{{ item.department }}</span></td>
+              <td>
+                <strong style="color: var(--text-dark);">Level {{ item.floor_number }}</strong>
+                {% if item.apartment_number %}<div style="font-size: 0.74rem; color: var(--text-body);">{{ item.apartment_number }}</div>{% endif %}
+              </td>
+              <td>
+                <div style="max-width: 380px; font-size: 0.82rem; color: var(--text-body); line-height: 1.4;">
+                  {{ item.faults_description }}
+                </div>
+              </td>
+              <td>
+                <span class="badge-status badge-cleared">
+                  <i class="fa-solid fa-stamp"></i> Passed QC
+                </span>
+                <div style="font-size: 0.72rem; color: var(--text-body); margin-top: 2px;">{{ item.date_recorded|date:"M d, Y" }}</div>
+              </td>
+              <td>
+                <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-outline btn-skydash-sm">
+                  View Record
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div style="padding: 3rem; text-align: center; color: var(--text-body);">
+        <i class="fa-solid fa-stamp" style="font-size: 2.5rem; color: #b2b9c5; margin-bottom: 0.5rem; display: block;"></i>
+        <h4 style="margin: 0; color: var(--text-dark); font-weight: 800;">No Approved Clearances Yet</h4>
+        <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.4rem 0 1rem 0;">Clear pending defects from Tab 1 to build the project verification ledger.</p>
+      </div>
+      {% endif %}
+
+    <!-- ====================================================================
+         TAB 3: DAMAGES / IMPROPER WORK
+         ==================================================================== -->
+    {% elif active_tab == 'damages' %}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-dark); margin: 0;">
+            <i class="fa-solid fa-wrench" style="color: #7978E9;"></i>
+            Damages & Improper Workmanship Log
+          </h3>
+          <span style="font-size: 0.8rem; color: var(--text-body);">Physical damages, improper fixing, leakages, and workmanship faults across all trades.</span>
+        </div>
+        <span class="badge-status badge-ncr">{{ damages_inspections.count }} Damage Records</span>
+      </div>
+
+      {% if damages_inspections %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+        {% for item in damages_inspections %}
+        <div style="background: #FAFBFD; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <span class="badge-dept dept-{{ item.department|lower }}">{{ item.department }}</span>
+            <span class="badge-status {{ item.status_badge_class }}">{{ item.status }}</span>
+          </div>
+
+          <div style="font-size: 0.88rem; font-weight: 800; color: var(--text-dark); margin-bottom: 0.4rem;">
+            Level {{ item.floor_number }}{% if item.apartment_number %} &bull; {{ item.apartment_number }}{% endif %}
+          </div>
+
+          <p style="font-size: 0.82rem; color: var(--text-body); line-height: 1.45; margin: 0 0 1rem 0; flex-grow: 1;">
+            {{ item.faults_description }}
+          </p>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 0.75rem; font-size: 0.76rem;">
+            <span style="color: var(--text-body);">
+              <i class="fa-solid fa-calendar"></i> {{ item.date_recorded|date:"M d, Y" }}
+            </span>
+            <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+              Inspect Damage Overlays
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="padding: 3rem; text-align: center; color: var(--text-body);">
+        <i class="fa-solid fa-shield-halved" style="font-size: 2.5rem; color: var(--skydash-success); margin-bottom: 0.5rem; display: block;"></i>
+        <h4 style="margin: 0; color: var(--text-dark); font-weight: 800;">No Damage or Workmanship Deficiencies Logged</h4>
+        <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.4rem 0 0 0;">All installed materials and assemblies meet physical integrity standards.</p>
+      </div>
+      {% endif %}
+
+    <!-- ====================================================================
+         TAB 4: NCR REPORTS
+         ==================================================================== -->
+    {% elif active_tab == 'ncr' %}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--skydash-danger); margin: 0;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            Non-Conformance Reports (NCR) Ledger
+          </h3>
+          <span style="font-size: 0.8rem; color: var(--text-body);">Severe technical violations requiring formal engineering corrective notices.</span>
+        </div>
+        <span class="badge-status badge-ncr">{{ ncr_inspections.count }} Active NCRs</span>
+      </div>
+
+      {% if ncr_inspections %}
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for item in ncr_inspections %}
+        <div style="background: var(--skydash-danger-light); border: 1px solid #ffd2d2; border-left: 5px solid var(--skydash-danger); border-radius: var(--radius-md); padding: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span class="badge-dept dept-{{ item.department|lower }}">{{ item.department }}</span>
+              <strong style="color: var(--text-dark); font-size: 0.95rem;">NCR-{{ project.id }}-{{ item.id }}: Level {{ item.floor_number }}{% if item.apartment_number %} ({{ item.apartment_number }}){% endif %}</strong>
+            </div>
+            <span class="badge-status badge-ncr">ACTION MANDATORY</span>
+          </div>
+
+          <p style="font-size: 0.85rem; color: var(--text-dark); line-height: 1.5; margin: 0.5rem 0 1rem 0;">
+            {{ item.faults_description }}
+          </p>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-size: 0.78rem;">
+            <span style="color: var(--skydash-danger); font-weight: 700;">
+              <i class="fa-solid fa-triangle-exclamation"></i> Violates Project MEP Specification
+            </span>
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="button" class="btn-skydash btn-skydash-success btn-skydash-sm" onclick="quickClearItem({{ item.id }})">
+                <i class="fa-solid fa-check"></i> Sign-off NCR
+              </button>
+              <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+                View NCR Dossier
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="padding: 3rem; text-align: center; color: var(--text-body);">
+        <i class="fa-solid fa-certificate" style="font-size: 2.5rem; color: var(--skydash-success); margin-bottom: 0.5rem; display: block;"></i>
+        <h4 style="margin: 0; color: var(--text-dark); font-weight: 800;">Zero Active Non-Conformance Reports!</h4>
+        <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.4rem 0 0 0;">This project has no outstanding regulatory or design non-compliances.</p>
+      </div>
+      {% endif %}
+
+    <!-- ====================================================================
+         TAB 5: DAILY INSPECTION FINDINGS
+         ==================================================================== -->
+    {% elif active_tab == 'daily' %}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-dark); margin: 0;">
+            <i class="fa-solid fa-calendar-days" style="color: var(--skydash-primary);"></i>
+            Daily QA/QC Inspection Log
+          </h3>
+          <span style="font-size: 0.8rem; color: var(--text-body);">Chronological audit trail of site visits and inspector walk-through findings.</span>
+        </div>
+        <span class="badge-status badge-cleared">{{ all_inspections.count }} Total Findings</span>
+      </div>
+
+      {% if daily_findings_list %}
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        {% for day in daily_findings_list %}
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: var(--radius-lg); box-shadow: var(--shadow-subtle); overflow: hidden;">
+          <div style="background: #FAFBFD; padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <i class="fa-solid fa-calendar-check" style="color: var(--skydash-primary);"></i>
+              <strong style="color: var(--text-dark); font-size: 0.95rem;">{{ day.date|date:"l, F d, Y" }}</strong>
+            </div>
+            <span style="font-size: 0.74rem; font-weight: 700; color: var(--skydash-primary); background: var(--skydash-primary-light); padding: 3px 10px; border-radius: 20px;">
+              {{ day.count }} Site Finding{{ day.count|pluralize }}
+            </span>
+          </div>
+
+          <div style="padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;">
+            {% for item in day.items %}
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.65rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span class="badge-dept dept-{{ item.department|lower }}">{{ item.department }}</span>
+                <div>
+                  <strong style="color: var(--text-dark); font-size: 0.85rem;">Level {{ item.floor_number }}{% if item.apartment_number %} &bull; {{ item.apartment_number }}{% endif %}</strong>
+                  <div style="font-size: 0.78rem; color: var(--text-body); max-width: 480px; line-height: 1.35; margin-top: 2px;">
+                    {{ item.faults_description|truncatewords:18 }}
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="badge-status {{ item.status_badge_class }}">{{ item.status }}</span>
+                <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-outline btn-skydash-sm">
+                  <i class="fa-solid fa-eye"></i>
+                </a>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="padding: 3rem; text-align: center; color: var(--text-body);">
+        <i class="fa-solid fa-calendar-xmark" style="font-size: 2.5rem; color: #b2b9c5; margin-bottom: 0.5rem; display: block;"></i>
+        <h4 style="margin: 0; color: var(--text-dark); font-weight: 800;">No Inspection Findings Logged</h4>
+        <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.4rem 0 1rem 0;">Record a defect inspection to start generating the daily site timeline.</p>
+        <a href="{% url 'inspection_create' %}?project={{ project.id }}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+          <i class="fa-solid fa-plus"></i> Record Inspection
+        </a>
+      </div>
+      {% endif %}
+
+    <!-- ====================================================================
+         TAB 6: FLOOR-BASED PHOTO GALLERY (FILTERABLE BY FLOOR NUMBERS)
+         ==================================================================== -->
+    {% elif active_tab == 'gallery' %}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-dark); margin: 0;">
+            <i class="fa-solid fa-images" style="color: var(--skydash-primary);"></i>
+            Floor-Based Defect Photo Gallery
+          </h3>
+          <span style="font-size: 0.8rem; color: var(--text-body);">Site photos with marked circle points, filterable by individual building levels.</span>
+        </div>
+        <a href="{% url 'inspection_create' %}?project={{ project.id }}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+          <i class="fa-solid fa-camera"></i> Upload Floor Photo
+        </a>
+      </div>
+
+      <!-- Floor Numbers Filter Pills -->
+      <div style="background: #FAFBFD; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <span style="font-size: 0.78rem; font-weight: 800; color: var(--text-dark); margin-right: 0.25rem;">
+          <i class="fa-solid fa-filter" style="color: var(--skydash-primary);"></i> Filter Floor:
+        </span>
+
+        <!-- All Floors -->
+        <a href="?tab=gallery" class="btn-skydash {% if not selected_floor %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px; padding: 0.3rem 0.85rem;">
+          All Floors ({{ all_inspections.count }})
+        </a>
+
+        <!-- Individual Floor Pills -->
+        {% for fl in distinct_floors %}
+        <a href="?tab=gallery&floor={{ fl }}" class="btn-skydash {% if selected_floor == fl|stringformat:'s' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px; padding: 0.3rem 0.85rem;">
+          Level {{ fl }}
+        </a>
+        {% endfor %}
+      </div>
+
+      <!-- Photo Gallery Grid -->
+      {% if gallery_inspections %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem;">
+        {% for item in gallery_inspections %}
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-subtle); display: flex; flex-direction: column;">
+          <!-- Photo Display Area -->
+          <div style="position: relative; height: 190px; background: #171822; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            {% if item.original_image %}
+              <img src="{{ item.original_image.url }}" alt="Inspection Photo" style="width: 100%; height: 100%; object-fit: cover;">
+            {% else %}
+              <div style="text-align: center; color: #94a3b8; padding: 1rem;">
+                <i class="fa-solid fa-camera" style="font-size: 2.2rem; color: #7978E9; margin-bottom: 0.35rem; display: block; opacity: 0.75;"></i>
+                <span style="font-size: 0.76rem; font-weight: 700; color: #FFFFFF;">Site Plan Reference</span>
+              </div>
+            {% endif %}
+
+            <!-- Top Overlaid Floor & Status Badges -->
+            <div style="position: absolute; top: 10px; left: 10px; display: flex; gap: 0.35rem;">
+              <span style="background: rgba(15, 23, 42, 0.85); color: #fff; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; backdrop-filter: blur(4px);">
+                Level {{ item.floor_number }}
+              </span>
+              <span class="badge-dept dept-{{ item.department|lower }}" style="font-size: 0.68rem; padding: 3px 6px;">
+                {{ item.department }}
+              </span>
+            </div>
+
+            <!-- Overlay marker counter -->
+            {% if item.overlay_count %}
+            <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(75, 73, 172, 0.9); color: #fff; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; backdrop-filter: blur(4px);">
+              <i class="fa-solid fa-circle-dot"></i> {{ item.overlay_count }} Marker{{ item.overlay_count|pluralize }}
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Card Content -->
+          <div style="padding: 1rem; display: flex; flex-direction: column; flex-grow: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-body);">
+                {% if item.apartment_number %}{{ item.apartment_number }}{% else %}General Area{% endif %}
+              </span>
+              <span class="badge-status {{ item.status_badge_class }}" style="font-size: 0.68rem; padding: 2px 7px;">
+                {{ item.status }}
+              </span>
+            </div>
+
+            <p style="font-size: 0.8rem; color: var(--text-dark); line-height: 1.4; margin: 0 0 0.85rem 0; flex-grow: 1;">
+              {{ item.faults_description|truncatewords:14 }}
+            </p>
+
+            <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-primary btn-skydash-sm" style="width: 100%; text-align: center;">
+              <i class="fa-solid fa-crosshairs"></i> Inspect Photo Markers
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="padding: 3rem; text-align: center; color: var(--text-body);">
+        <i class="fa-solid fa-images" style="font-size: 2.5rem; color: #b2b9c5; margin-bottom: 0.5rem; display: block;"></i>
+        <h4 style="margin: 0; color: var(--text-dark); font-weight: 800;">No Photos Logged for Level {{ selected_floor }}</h4>
+        <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.4rem 0 1rem 0;">Try selecting a different floor level or upload a new photo.</p>
+        <a href="{% url 'inspection_create' %}?project={{ project.id }}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+          <i class="fa-solid fa-camera"></i> Upload Photo on Level {{ selected_floor|default:"1" }}
+        </a>
+      </div>
+      {% endif %}
+
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function changeMatrixFilter(paramName, paramVal) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('tab', 'matrix');
+  url.searchParams.set(paramName, paramVal);
+  window.location.href = url.toString();
+}
+
+async function updateRoomMilestoneStatus(selectElem) {
+  const statusId = selectElem.getAttribute('data-status-id');
+  const roomName = selectElem.getAttribute('data-room-name') || 'Room';
+  const milestoneName = selectElem.getAttribute('data-milestone-name') || 'Milestone';
+  const newStatus = selectElem.value;
+  const prevClass = selectElem.className;
+
+  // Add subtle pulse feedback
+  selectElem.classList.add('saving-pulse');
+
+  // Immediately update visual badge class
+  selectElem.classList.remove('badge-milestone-done', 'badge-milestone-progress', 'badge-milestone-pending', 'badge-milestone-na');
+  if (newStatus === 'Done') selectElem.classList.add('badge-milestone-done');
+  else if (newStatus === 'In Progress') selectElem.classList.add('badge-milestone-progress');
+  else if (newStatus === 'Not Applicable') selectElem.classList.add('badge-milestone-na');
+  else selectElem.classList.add('badge-milestone-pending');
+
+  try {
+    const response = await fetch(`/api/milestones/${statusId}/update/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+
+    const data = await response.json();
+    selectElem.classList.remove('saving-pulse');
+
+    if (data.success) {
+      selectElem.className = 'milestone-matrix-select ' + data.badge_class;
+      const timeElem = document.getElementById(`status-time-${statusId}`);
+      if (timeElem && data.updated_at) {
+        timeElem.textContent = data.updated_at;
+      }
+      showMatrixToast(`${roomName} &bull; ${milestoneName}: <strong>${newStatus}</strong>`, 'success');
+      recalculateMatrixStats();
+    } else {
+      selectElem.className = prevClass;
+      showMatrixToast(`Failed to update: ${data.error || 'Server error'}`, 'error');
+    }
+  } catch (err) {
+    selectElem.classList.remove('saving-pulse');
+    selectElem.className = prevClass;
+    showMatrixToast('Network error updating milestone status', 'error');
+  }
+}
+
+function recalculateMatrixStats() {
+  const selects = document.querySelectorAll('.milestone-matrix-select');
+  let done = 0, inProg = 0, pending = 0, na = 0, total = selects.length;
+  selects.forEach(s => {
+    if (s.value === 'Done') done++;
+    else if (s.value === 'In Progress') inProg++;
+    else if (s.value === 'Not Applicable') na++;
+    else pending++;
+  });
+
+  const rate = total > 0 ? Math.round((done / total) * 1000) / 10 : 0;
+  const doneEl = document.getElementById('kpiDoneVal');
+  const progEl = document.getElementById('kpiProgressVal');
+  const pendEl = document.getElementById('kpiPendingVal');
+  const naEl = document.getElementById('kpiNaVal');
+  const barEl = document.getElementById('matrixProgressBar');
+  const pctEl = document.getElementById('matrixProgressPct');
+
+  if (doneEl) doneEl.textContent = done;
+  if (progEl) progEl.textContent = inProg;
+  if (pendEl) pendEl.textContent = pending;
+  if (naEl) naEl.textContent = na;
+  if (barEl) barEl.style.width = rate + '%';
+  if (pctEl) pctEl.textContent = rate + '%';
+}
+
+function showMatrixToast(htmlMsg, type = 'success') {
+  let toast = document.getElementById('matrixToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'matrixToast';
+    toast.className = 'matrix-toast';
+    document.body.appendChild(toast);
+  }
+
+  toast.className = `matrix-toast toast-${type}`;
+  toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}" style="color: ${type === 'success' ? 'var(--skydash-success)' : 'var(--skydash-danger)'}; font-size: 1.1rem;"></i> <span>${htmlMsg}</span>`;
+  toast.classList.add('show');
+
+  clearTimeout(window._matrixToastTimeout);
+  window._matrixToastTimeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2800);
+}
+
+async function quickClearItem(inspectionId) {
+  if (!confirm("Confirm Quality Clearance sign-off for Defect #" + inspectionId + "?")) {
+    return;
+  }
+  try {
+    const response = await fetch(`/api/inspections/${inspectionId}/status/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ status: 'Given Clearance' })
+    });
+    const result = await response.json();
+    if (result.success) {
+      showToast('Inspection clearance recorded!', 'success');
+      setTimeout(() => location.reload(), 600);
+    } else {
+      showToast('Error: ' + result.error, 'error');
+    }
+  } catch (err) {
+    showToast('Failed to sign off clearance', 'error');
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Phase 5: Automatic Apartment Generation & Floor Management Modals & Scripts
+// ----------------------------------------------------------------------------
+
+function computeDynamicPrefix(floorName, floorType, customPrefix) {
+  if (customPrefix && customPrefix.trim() !== '') {
+    return customPrefix.trim();
+  }
+  const str = (floorName || '').trim();
+  const digitMatch = str.match(/(\d+)/);
+  const digits = digitMatch ? digitMatch[1] : '';
+
+  if (floorType === 'Basement') {
+    return digits ? `B${digits}-` : 'B1-';
+  } else if (floorType === 'Podium') {
+    return digits ? `P${digits}-` : 'P1-';
+  } else if (floorType === 'Ground Floor') {
+    return 'G';
+  } else if (floorType === 'Mechanical Floor') {
+    return digits ? `M${digits}-` : 'M-';
+  } else if (floorType === 'Roof') {
+    return 'RF-';
+  } else {
+    // Typical Floor or Custom
+    if (digits) {
+      return digits.length < 2 ? '0' + digits : digits;
+    }
+    const clean = str.replace(/[^A-Za-z0-9]/g, '').substring(0, 3).toUpperCase();
+    return clean || '01';
+  }
+}
+
+function updateModalCreatePreview() {
+  const floorName = document.getElementById('id_modal_floor_number')?.value || 'Floor 05';
+  const floorType = document.getElementById('id_modal_floor_type')?.value || 'Typical Floor';
+  const aptCount = parseInt(document.getElementById('id_modal_apartment_count')?.value, 10) || 0;
+  const startNum = parseInt(document.getElementById('id_modal_starting_number')?.value, 10) || 1;
+  const customPrefix = document.getElementById('id_modal_numbering_prefix')?.value || '';
+
+  const prefix = computeDynamicPrefix(floorName, floorType, customPrefix);
+  const detectedBadge = document.getElementById('modalDetectedPrefix');
+  if (detectedBadge) detectedBadge.textContent = prefix;
+
+  const aptContainer = document.getElementById('modalPreviewApts');
+  if (aptContainer) {
+    aptContainer.innerHTML = '';
+    const apts = [];
+    if (aptCount > 0) {
+      for (let i = startNum; i < startNum + aptCount; i++) {
+        const pad = i < 10 ? '0' + i : i;
+        const numStr = `${prefix}${pad}`;
+        apts.push(numStr);
+
+        const pill = document.createElement('span');
+        pill.style.cssText = 'background: #EEF2FF; color: #4B49AC; font-weight: 800; font-size: 0.72rem; padding: 2px 7px; border-radius: 5px; border: 1px solid #D8E0FF;';
+        pill.textContent = numStr;
+        aptContainer.appendChild(pill);
+      }
+    } else {
+      aptContainer.innerHTML = '<span style="font-size: 0.75rem; color: #64748b; font-style: italic;">0 Apartments (Common service spaces only)</span>';
+    }
+
+    const rangeEl = document.getElementById('modalPreviewRange');
+    if (rangeEl) {
+      rangeEl.textContent = apts.length > 0 ? `${apts[0]} → ${apts[apts.length - 1]}` : 'None';
+    }
+    const countEl = document.getElementById('modalPreviewAptCount');
+    if (countEl) countEl.textContent = apts.length;
+  }
+
+  // Common Areas
+  const caChecks = document.querySelectorAll('.modal-ca-check:checked');
+  const caContainer = document.getElementById('modalPreviewCommonAreas');
+  const caList = [];
+  caChecks.forEach(cb => caList.push(cb.value));
+
+  const customCa = document.getElementById('id_modal_custom_common_areas')?.value || '';
+  if (customCa.trim()) {
+    customCa.split(',').forEach(item => {
+      const c = item.trim();
+      if (c && !caList.includes(c)) caList.push(c);
+    });
+  }
+
+  if (caContainer) {
+    caContainer.innerHTML = '';
+    if (caList.length > 0) {
+      caList.forEach(ca => {
+        const pill = document.createElement('span');
+        pill.style.cssText = 'background: #FAF5FF; color: #6B46C1; font-weight: 700; font-size: 0.72rem; padding: 2px 7px; border-radius: 5px; border: 1px solid #E9D8FD;';
+        pill.textContent = ca;
+        caContainer.appendChild(pill);
+      });
+    } else {
+      caContainer.innerHTML = '<span style="font-size: 0.75rem; color: #64748b; font-style: italic;">No common areas selected</span>';
+    }
+
+    const caCountEl = document.getElementById('modalPreviewCaCount');
+    if (caCountEl) caCountEl.textContent = caList.length;
+
+    const totalEl = document.getElementById('modalPreviewTotalRooms');
+    if (totalEl) totalEl.textContent = (aptCount + caList.length) + ' Rooms Total';
+  }
+}
+
+function toggleModalCommonAreas(checked) {
+  document.querySelectorAll('.modal-ca-check').forEach(cb => cb.checked = checked);
+  updateModalCreatePreview();
+}
+
+function openEditRoomModal(roomId, roomNumber, roomType) {
+  const form = document.getElementById('editRoomForm');
+  if (form) {
+    form.action = `/rooms/${roomId}/edit/`;
+  }
+  const numInput = document.getElementById('edit_room_number_input');
+  if (numInput) numInput.value = roomNumber;
+  const typeSelect = document.getElementById('edit_room_type_select');
+  if (typeSelect) typeSelect.value = roomType;
+
+  openModal('modalEditRoom');
+}
+
+function confirmRoomDelete(roomNumber, totalDefects) {
+  if (totalDefects > 0) {
+    alert(`Cannot delete room '${roomNumber}': it has ${totalDefects} recorded QA/QC defect inspection(s). Defect history must be preserved.`);
+    return false;
+  }
+  return confirm(`Are you sure you want to delete room '${roomNumber}'? This action cannot be undone.`);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const modalInputs = ['id_modal_floor_number', 'id_modal_floor_type', 'id_modal_apartment_count', 'id_modal_starting_number', 'id_modal_numbering_prefix', 'id_modal_custom_common_areas'];
+  modalInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', updateModalCreatePreview);
+      el.addEventListener('change', updateModalCreatePreview);
+    }
+  });
+
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('open_create_floor') === '1') {
+    openModal('modalCreateFloor');
+  } else if (urlParams.get('edit_floor') === '1') {
+    openModal('modalEditFloor');
+  }
+
+  updateModalCreatePreview();
+});
+</script>
+
+<!-- ========================================================================== -->
+<!-- MODAL 1: CREATE FLOOR & AUTO-GENERATE APARTMENTS                            -->
+<!-- ========================================================================== -->
+<div class="mep-modal-backdrop" id="modalCreateFloor">
+  <div class="mep-modal" style="max-width: 840px;">
+    <div class="skydash-card-header" style="background: linear-gradient(135deg, #FAFBFD 0%, #EEF2FF 100%); padding: 1.15rem 1.4rem; border-bottom: 1px solid var(--border-light);">
+      <div>
+        <h3 class="skydash-card-title" style="font-size: 1.15rem; color: var(--text-dark); margin: 0;">
+          <i class="fa-solid fa-layer-group" style="color: var(--skydash-primary);"></i>
+          <span>Create Floor & Auto-Generate Apartments</span>
+        </h3>
+        <span style="font-size: 0.74rem; color: var(--text-body); margin-top: 2px; display: block;">
+          Generate sequential apartment numbers dynamically (e.g. 0501 to 0516) and initialize milestone tracking.
+        </span>
+      </div>
+      <button type="button" onclick="closeModal('modalCreateFloor')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" action="{% url 'floor_create' project.id %}">
+      {% csrf_token %}
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        
+        <div style="display: grid; grid-template-columns: 1.1fr 1fr; gap: 1.25rem;">
+          <!-- Left: Inputs -->
+          <div>
+            <!-- Floor Name / Number -->
+            <div style="margin-bottom: 0.9rem;">
+              <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.3rem;">
+                Floor Name / Number <span style="color: var(--skydash-danger);">*</span>
+              </label>
+              <input type="text" name="floor_number" id="id_modal_floor_number" class="form-control" value="Floor 05" placeholder="e.g. Floor 05, Basement 1, Podium 1" required>
+              <div style="font-size: 0.7rem; color: var(--text-body); margin-top: 2px;">
+                Floor number is used as apartment prefix (e.g. <code>Floor 05</code> &rarr; <code>05</code>)
+              </div>
+            </div>
+
+            <!-- Floor Type -->
+            <div style="margin-bottom: 0.9rem;">
+              <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.3rem;">
+                Floor Classification Type <span style="color: var(--skydash-danger);">*</span>
+              </label>
+              <select name="floor_type" id="id_modal_floor_type" class="form-select">
+                <option value="Typical Floor" selected>Typical Floor</option>
+                <option value="Basement">Basement (e.g. B1-01)</option>
+                <option value="Podium">Podium (e.g. P1-01)</option>
+                <option value="Ground Floor">Ground Floor (e.g. G01)</option>
+                <option value="Mechanical Floor">Mechanical Floor</option>
+                <option value="Roof">Roof</option>
+                <option value="Custom">Custom</option>
+              </select>
+            </div>
+
+            <!-- Apartment Count & Starting Index -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.9rem;">
+              <div>
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.3rem;">
+                  Apartment Count <span style="color: var(--skydash-danger);">*</span>
+                </label>
+                <input type="number" name="apartment_count" id="id_modal_apartment_count" class="form-control" value="16" min="0" required>
+                <div style="font-size: 0.68rem; color: var(--text-body); margin-top: 2px;">
+                  Use 0 for service-only levels.
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.3rem;">
+                  Starting Number <span style="color: var(--skydash-danger);">*</span>
+                </label>
+                <input type="number" name="starting_number" id="id_modal_starting_number" class="form-control" value="1" min="1" required>
+                <div style="font-size: 0.68rem; color: var(--text-body); margin-top: 2px;">
+                  Default 1 (01 to N).
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom Prefix Override -->
+            <div style="margin-bottom: 0.9rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dark); margin: 0;">
+                  Apartment Prefix (Optional)
+                </label>
+                <span style="font-size: 0.68rem; font-weight: 800; background: #eef2ff; color: var(--skydash-primary); padding: 1px 6px; border-radius: 4px;">
+                  Auto: <span id="modalDetectedPrefix">05</span>
+                </span>
+              </div>
+              <input type="text" name="numbering_prefix" id="id_modal_numbering_prefix" class="form-control" placeholder="Leave blank for auto-detected prefix">
+            </div>
+
+            <!-- Common Areas Section -->
+            <div style="border-top: 1px solid var(--border-light); padding-top: 0.75rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+                <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-dark); margin: 0;">
+                  <i class="fa-solid fa-cube" style="color: #6f42c1;"></i> Common Areas
+                </label>
+                <div style="display: flex; gap: 0.3rem;">
+                  <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.65rem; padding: 1px 6px;" onclick="toggleModalCommonAreas(true)">All</button>
+                  <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.65rem; padding: 1px 6px;" onclick="toggleModalCommonAreas(false)">Clear</button>
+                </div>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; background: #FAFBFD; padding: 0.65rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light); max-height: 135px; overflow-y: auto;">
+                {% for ca in standard_common_areas %}
+                <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 600; color: var(--text-dark); cursor: pointer; margin: 0;">
+                  <input type="checkbox" name="common_areas" value="{{ ca }}" class="form-check-input modal-ca-check" onchange="updateModalCreatePreview()" {% if ca in 'Lift Lobby,Corridor,Garbage Room,Staircase' %}checked{% endif %}>
+                  <span>{{ ca }}</span>
+                </label>
+                {% endfor %}
+              </div>
+
+              <div style="margin-top: 0.45rem;">
+                <input type="text" name="custom_common_areas" id="id_modal_custom_common_areas" class="form-control" style="font-size: 0.78rem; padding: 0.35rem 0.65rem;" placeholder="Custom areas (e.g. Prayer Room, Terrace)">
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Live Preview Panel -->
+          <div style="background: #FAFBFD; border: 1px solid #D8E0FF; border-radius: var(--radius-md); padding: 1.1rem; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-light); padding-bottom: 0.5rem;">
+              <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--skydash-primary);">
+                <i class="fa-solid fa-eye"></i> Live Generation Preview
+              </span>
+              <span class="badge-status badge-cleared" id="modalPreviewTotalRooms" style="font-size: 0.72rem; font-weight: 800;">
+                20 Rooms Total
+              </span>
+            </div>
+
+            <!-- Generated Apartments Preview -->
+            <div style="margin-bottom: 0.85rem; flex-grow: 1;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.76rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.35rem;">
+                <span><i class="fa-solid fa-door-open" style="color: var(--skydash-primary);"></i> Apartments (<span id="modalPreviewAptCount">16</span>)</span>
+                <span id="modalPreviewRange" style="color: var(--text-body); font-size: 0.7rem;">0501 → 0516</span>
+              </div>
+              <div id="modalPreviewApts" style="display: flex; flex-wrap: wrap; gap: 0.3rem; max-height: 160px; overflow-y: auto; background: #FFFFFF; padding: 0.55rem; border-radius: 6px; border: 1px solid var(--border-light);">
+                <!-- Dynamic Pills -->
+              </div>
+            </div>
+
+            <!-- Common Areas Preview -->
+            <div style="margin-bottom: 0.85rem;">
+              <div style="font-size: 0.76rem; font-weight: 700; color: #6f42c1; margin-bottom: 0.35rem;">
+                <i class="fa-solid fa-cube"></i> Common Areas (<span id="modalPreviewCaCount">4</span>) - Not counted as apartments
+              </div>
+              <div id="modalPreviewCommonAreas" style="display: flex; flex-wrap: wrap; gap: 0.3rem; max-height: 90px; overflow-y: auto; background: #FFFFFF; padding: 0.55rem; border-radius: 6px; border: 1px solid var(--border-light);">
+                <!-- Dynamic Pills -->
+              </div>
+            </div>
+
+            <!-- Guarantee Note -->
+            <div style="background: #F4FBF4; border: 1px solid #C8ECC8; border-radius: 6px; padding: 0.6rem; font-size: 0.7rem; color: #235A23; line-height: 1.35;">
+              <i class="fa-solid fa-shield-check" style="color: var(--skydash-success);"></i>
+              <strong>Milestone Tracking Guarantee:</strong> RoomMilestoneStatus records for all active MEP milestones will be automatically created with initial status set to <strong>Pending</strong> in an atomic database transaction.
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.65rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalCreateFloor')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary" style="font-weight: 800;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Create Floor & Generate Units
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================================== -->
+<!-- MODAL 2: EDIT FLOOR & ADJUST APARTMENTS (WITH DEFECT SAFETY CHECKS)        -->
+<!-- ========================================================================== -->
+{% if current_matrix_floor %}
+<div class="mep-modal-backdrop" id="modalEditFloor">
+  <div class="mep-modal" style="max-width: 680px;">
+    <div class="skydash-card-header" style="background: #FAFBFD; padding: 1.15rem 1.4rem; border-bottom: 1px solid var(--border-light);">
+      <div>
+        <h3 class="skydash-card-title" style="font-size: 1.1rem; color: var(--text-dark); margin: 0;">
+          <i class="fa-solid fa-pen-to-square" style="color: var(--skydash-primary);"></i>
+          <span>Edit {{ current_matrix_floor.floor_number }} & Adjust Units</span>
+        </h3>
+        <span style="font-size: 0.74rem; color: var(--text-body); margin-top: 2px; display: block;">
+          Update floor metadata or increase/decrease unit count. Existing inspection history is always preserved.
+        </span>
+      </div>
+      <button type="button" onclick="closeModal('modalEditFloor')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" action="{% url 'floor_edit' current_matrix_floor.id %}">
+      {% csrf_token %}
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Floor Name / Number</label>
+            <input type="text" name="floor_number" class="form-control" value="{{ current_matrix_floor.floor_number }}" required>
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Floor Type</label>
+            <select name="floor_type" class="form-select">
+              {% for val, label in current_matrix_floor.FLOOR_TYPE_CHOICES %}
+                <option value="{{ val }}" {% if current_matrix_floor.floor_type == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.85rem; margin-bottom: 1rem;">
+          <div>
+            <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Apartment Count</label>
+            <input type="number" name="apartment_count" class="form-control" value="{{ current_matrix_floor.total_apartments|default:current_matrix_floor.apartment_count }}" min="0" required>
+            <div style="font-size: 0.68rem; color: var(--text-body); margin-top: 2px;">
+              Currently {{ current_matrix_floor.total_apartments }} units.
+            </div>
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Starting Number</label>
+            <input type="number" name="starting_number" class="form-control" value="{{ current_matrix_floor.starting_number }}" min="1" required>
+          </div>
+          <div>
+            <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Number Prefix</label>
+            <input type="text" name="numbering_prefix" class="form-control" value="{{ current_matrix_floor.numbering_prefix }}" placeholder="e.g. 05">
+          </div>
+        </div>
+
+        <!-- Safety Defect Protection Alert -->
+        <div style="background: #FFF9E6; border: 1px solid #FFE699; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1rem;">
+          <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+            <i class="fa-solid fa-shield-halved" style="color: #b8860b; font-size: 1.1rem; margin-top: 2px;"></i>
+            <div style="font-size: 0.76rem; color: #7a5c00; line-height: 1.4;">
+              <strong>Defect History Protection Guarantee:</strong><br>
+              &bull; If apartment count increases, only missing unit numbers are generated.<br>
+              &bull; If count decreases, rooms containing QA/QC inspection records or open NCRs are <strong>never deleted automatically</strong>.<br>
+              &bull; Excess empty rooms without defects require explicit confirmation below before removal.
+            </div>
+          </div>
+
+          <div style="margin-top: 0.65rem; padding-top: 0.5rem; border-top: 1px dashed #eed580;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; font-weight: 700; color: var(--text-dark); cursor: pointer; margin: 0;">
+              <input type="checkbox" name="confirm_removal" class="form-check-input" value="1">
+              <span>I confirm removal of excess empty apartments that have ZERO defect records.</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Current Rooms List -->
+        <div>
+          <span style="font-size: 0.78rem; font-weight: 800; color: var(--text-dark); margin-bottom: 0.4rem; display: block;">
+            Current Rooms on {{ current_matrix_floor.floor_number }} ({{ current_matrix_floor.total_rooms }} Total)
+          </span>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; max-height: 120px; overflow-y: auto; background: #FAFBFD; padding: 0.65rem; border-radius: 6px; border: 1px solid var(--border-light);">
+            {% for r in current_matrix_floor.rooms.all %}
+              <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid {% if r.total_defects_count > 0 %}#ffd2d2; background: #fff5f5; color: #dc3545;{% else %}#D8E0FF; background: #EEF2FF; color: #4B49AC;{% endif %}">
+                {% if r.is_common_area %}<i class="fa-solid fa-cube" style="font-size: 0.65rem;"></i>{% else %}<i class="fa-solid fa-home" style="font-size: 0.65rem;"></i>{% endif %}
+                <strong>{{ r.room_number }}</strong>
+                {% if r.total_defects_count > 0 %}<span style="font-size: 0.62rem; font-weight: 800;">({{ r.total_defects_count }} snags)</span>{% endif %}
+              </span>
+            {% empty %}
+              <span style="font-size: 0.75rem; color: #64748b;">No rooms currently configured.</span>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="color: var(--skydash-danger); border-color: #ffd2d2;" onclick="closeModal('modalEditFloor'); openModal('modalDeleteFloor');">
+          <i class="fa-solid fa-trash-can"></i> Delete Level
+        </button>
+
+        <div style="display: flex; gap: 0.6rem;">
+          <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalEditFloor')">Cancel</button>
+          <button type="submit" class="btn-skydash btn-skydash-primary" style="font-weight: 800;">Save Floor Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- ========================================================================== -->
+<!-- MODAL 3: ADD COMMON AREAS SEPARATELY (NOT COUNTED AS APARTMENTS)          -->
+<!-- ========================================================================== -->
+{% if current_matrix_floor %}
+<div class="mep-modal-backdrop" id="modalAddCommonAreas">
+  <div class="mep-modal" style="max-width: 600px;">
+    <div class="skydash-card-header" style="background: #FAFBFD; padding: 1.15rem 1.4rem; border-bottom: 1px solid var(--border-light);">
+      <div>
+        <h3 class="skydash-card-title" style="font-size: 1.1rem; color: var(--text-dark); margin: 0;">
+          <i class="fa-solid fa-cube" style="color: #6f42c1;"></i>
+          <span>Add Common Areas &bull; {{ current_matrix_floor.floor_number }}</span>
+        </h3>
+        <span style="font-size: 0.74rem; color: var(--text-body); margin-top: 2px; display: block;">
+          Select common service spaces. These will <strong>not be counted as apartments</strong>.
+        </span>
+      </div>
+      <button type="button" onclick="closeModal('modalAddCommonAreas')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" action="{% url 'add_common_areas' current_matrix_floor.id %}">
+      {% csrf_token %}
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; background: #FAFBFD; padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light); max-height: 240px; overflow-y: auto; margin-bottom: 1rem;">
+          {% for ca in standard_common_areas %}
+          <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; font-weight: 600; color: var(--text-dark); cursor: pointer; margin: 0;">
+            <input type="checkbox" name="selected_common_areas" value="{{ ca }}" class="form-check-input">
+            <span>{{ ca }}</span>
+          </label>
+          {% endfor %}
+        </div>
+
+        <div style="margin-bottom: 0.75rem;">
+          <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dark);">
+            Additional Custom Common Area
+          </label>
+          <input type="text" name="custom_common_area" class="form-control" placeholder="e.g., Roof Terrace, Fire Command Room">
+        </div>
+
+        <div style="background: #F4FBF4; border: 1px solid #C8ECC8; border-radius: 6px; padding: 0.6rem; font-size: 0.72rem; color: #235A23;">
+          <i class="fa-solid fa-shield-check" style="color: var(--skydash-success);"></i>
+          Duplicate-safe: will not duplicate existing common areas. All MEP milestone statuses initialized to <strong>Pending</strong>.
+        </div>
+
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.6rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalAddCommonAreas')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary" style="font-weight: 800;">
+          <i class="fa-solid fa-plus"></i> Add Common Areas
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- ========================================================================== -->
+<!-- MODAL 4: ADD SINGLE ROOM / APARTMENT MANUALLY                             -->
+<!-- ========================================================================== -->
+{% if current_matrix_floor %}
+<div class="mep-modal-backdrop" id="modalAddManualRoom">
+  <div class="mep-modal" style="max-width: 480px;">
+    <div class="skydash-card-header" style="background: #FAFBFD; padding: 1.15rem 1.4rem; border-bottom: 1px solid var(--border-light);">
+      <div>
+        <h3 class="skydash-card-title" style="font-size: 1.1rem; color: var(--text-dark); margin: 0;">
+          <i class="fa-solid fa-door-open" style="color: var(--skydash-primary);"></i>
+          <span>Add Space Manually &bull; {{ current_matrix_floor.floor_number }}</span>
+        </h3>
+      </div>
+      <button type="button" onclick="closeModal('modalAddManualRoom')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" action="{% url 'room_create' current_matrix_floor.id %}">
+      {% csrf_token %}
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        
+        <div style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Room / Unit Number <span style="color: var(--skydash-danger);">*</span></label>
+          <input type="text" name="room_number" class="form-control" placeholder="e.g. 0517, Penthouse 1, Terrace Garden" required>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Space Classification</label>
+          <select name="room_type" class="form-select">
+            <option value="Apartment" selected>Apartment Unit</option>
+            <option value="Common Area">Common Area / Service Space</option>
+          </select>
+        </div>
+
+        <div style="background: #F4FBF4; border: 1px solid #C8ECC8; border-radius: 6px; padding: 0.6rem; font-size: 0.72rem; color: #235A23;">
+          <i class="fa-solid fa-check-circle" style="color: var(--skydash-success);"></i>
+          Milestone tracking records will be automatically created with status <strong>Pending</strong>.
+        </div>
+
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.6rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalAddManualRoom')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary" style="font-weight: 800;">Add Space</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- ========================================================================== -->
+<!-- MODAL 5: EDIT ROOM NUMBERING / DESIGNATION                                 -->
+<!-- ========================================================================== -->
+<div class="mep-modal-backdrop" id="modalEditRoom">
+  <div class="mep-modal" style="max-width: 460px;">
+    <div class="skydash-card-header" style="background: #FAFBFD; padding: 1.15rem 1.4rem; border-bottom: 1px solid var(--border-light);">
+      <h3 class="skydash-card-title" style="font-size: 1.05rem; margin: 0;">
+        <i class="fa-solid fa-pen" style="color: var(--skydash-primary);"></i>
+        <span>Correct Room Numbering</span>
+      </h3>
+      <button type="button" onclick="closeModal('modalEditRoom')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" id="editRoomForm" action="">
+      {% csrf_token %}
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        <div style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Room / Unit Number <span style="color: var(--skydash-danger);">*</span></label>
+          <input type="text" name="room_number" id="edit_room_number_input" class="form-control" required>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Room Type</label>
+          <select name="room_type" id="edit_room_type_select" class="form-select">
+            <option value="Apartment">Apartment</option>
+            <option value="Common Area">Common Area</option>
+          </select>
+        </div>
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.6rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalEditRoom')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary" style="font-weight: 800;">Update Room</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================================== -->
+<!-- MODAL 6: ADD NEW MILESTONE (CIVIL HIGH WALL CLOSING, FALSE CEILING, ETC.) -->
+<!-- ========================================================================== -->
+<div class="mep-modal-backdrop" id="modalCreateMilestone">
+  <div class="mep-modal" style="max-width: 540px;">
+    <div class="skydash-card-header" style="background: linear-gradient(135deg, #FAFBFD 0%, #EEF2FF 100%); padding: 1.15rem 1.4rem; border-bottom: 1px solid var(--border-light);">
+      <div>
+        <h3 class="skydash-card-title" style="font-size: 1.1rem; color: var(--text-dark); margin: 0;">
+          <i class="fa-solid fa-flag-checkered" style="color: var(--skydash-primary);"></i>
+          <span>Add New Milestone Definition</span>
+        </h3>
+        <span style="font-size: 0.74rem; color: var(--text-body); margin-top: 2px; display: block;">
+          Define QA/QC milestones like Civil High Wall Closing, False Ceiling, Drywall, etc.
+        </span>
+      </div>
+      <button type="button" onclick="closeModal('modalCreateMilestone')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" action="{% url 'milestone_create' %}">
+      {% csrf_token %}
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        
+        <div style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dark);">
+            Milestone Name <span style="color: var(--skydash-danger);">*</span>
+          </label>
+          <input type="text" name="name" id="milestone_name_input" class="form-control" placeholder="e.g. Civil High Wall Closing, False Ceiling Framing" required>
+        </div>
+
+        <!-- Quick 1-Click Presets for Civil, False Ceiling, Wall Closing -->
+        <div style="margin-bottom: 1.15rem;">
+          <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--text-body); margin-bottom: 0.35rem; display: block; letter-spacing: 0.04em;">
+            Quick Presets (Click to Auto-fill):
+          </span>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+            <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.7rem; padding: 2px 8px; border-radius: 12px;" onclick="setMilestonePreset('Civil High Wall Closing', 'Civil', 4)">
+              <i class="fa-solid fa-trowel-bricks" style="color: #b8860b;"></i> Civil High Wall Closing
+            </button>
+            <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.7rem; padding: 2px 8px; border-radius: 12px;" onclick="setMilestonePreset('False Ceiling Framing', 'Fit-Out', 7)">
+              <i class="fa-solid fa-border-top-left" style="color: #4B49AC;"></i> False Ceiling Framing
+            </button>
+            <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.7rem; padding: 2px 8px; border-radius: 12px;" onclick="setMilestonePreset('False Ceiling Closure / Tile Drop', 'Fit-Out', 8)">
+              <i class="fa-solid fa-layer-group" style="color: #278827;"></i> False Ceiling Closure
+            </button>
+            <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.7rem; padding: 2px 8px; border-radius: 12px;" onclick="setMilestonePreset('Above-Ceiling MEP Clearance', 'General', 6)">
+              <i class="fa-solid fa-clipboard-check" style="color: #023E8A;"></i> Above-Ceiling Clearance
+            </button>
+            <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.7rem; padding: 2px 8px; border-radius: 12px;" onclick="setMilestonePreset('Shaft Wall Closing', 'Civil', 5)">
+              <i class="fa-solid fa-dungeon" style="color: #dc3545;"></i> Shaft Wall Closing
+            </button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1rem; margin-bottom: 1.15rem;">
+          <div>
+            <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dark);">
+              Department / Discipline
+            </label>
+            <select name="category" id="milestone_category_select" class="form-select">
+              <option value="Civil" selected>Civil / Structural</option>
+              <option value="Fit-Out">Fit-Out & Finishes</option>
+              <option value="General">MEP General</option>
+              <option value="HVAC">HVAC</option>
+              <option value="Plumbing">Plumbing</option>
+              <option value="Electrical">Electrical</option>
+              <option value="Firefighting">Firefighting</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-dark);">
+              Sequence Order
+            </label>
+            <input type="number" name="display_order" id="milestone_display_order" class="form-control" value="10" min="1">
+            <div style="font-size: 0.68rem; color: var(--text-body); margin-top: 2px;">Matrix column order</div>
+          </div>
+        </div>
+
+        <!-- Automatic Initialization Guarantee -->
+        <div style="background: #F4FBF4; border: 1px solid #C8ECC8; border-radius: 6px; padding: 0.75rem; font-size: 0.74rem; color: #235A23; line-height: 1.4;">
+          <i class="fa-solid fa-circle-check" style="color: var(--skydash-success);"></i>
+          <strong>Automatic Matrix Propagation:</strong> When created, this milestone will immediately appear as a new column in the inspection matrix for <strong>all rooms across all floors</strong>, with initial status set to <strong>Pending</strong>.
+        </div>
+
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.6rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalCreateMilestone')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary" style="font-weight: 800;">
+          <i class="fa-solid fa-plus"></i> Create Milestone
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function setMilestonePreset(name, category, order) {
+  const nameInput = document.getElementById('milestone_name_input');
+  const catSelect = document.getElementById('milestone_category_select');
+  const orderInput = document.getElementById('milestone_display_order');
+  if (nameInput) nameInput.value = name;
+  if (catSelect) catSelect.value = category;
+  if (orderInput && order) orderInput.value = order;
+}
+</script>
+
+<!-- ========================================================================== -->
+<!-- MODAL 7: DELETE LEVEL (CONFIRM PASSWORD REQUIRED)                          -->
+<!-- ========================================================================== -->
+{% if current_matrix_floor %}
+<div class="mep-modal-backdrop" id="modalDeleteFloor">
+  <div class="mep-modal" style="max-width: 520px;">
+    <div class="skydash-card-header" style="background: #FFF5F5; border-bottom: 1px solid #FFD2D2; padding: 1.15rem 1.4rem;">
+      <div>
+        <h3 class="skydash-card-title" style="color: var(--skydash-danger); margin: 0; font-size: 1.1rem;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Delete Level {{ current_matrix_floor.floor_number }}</span>
+        </h3>
+        <span style="font-size: 0.74rem; color: #b91c1c; margin-top: 2px; display: block;">
+          Permanent action &bull; Password verification required
+        </span>
+      </div>
+      <button type="button" onclick="closeModal('modalDeleteFloor')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" action="{% url 'floor_delete' current_matrix_floor.id %}">
+      {% csrf_token %}
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        
+        <p style="font-size: 0.85rem; color: var(--text-dark); margin: 0 0 1rem 0; line-height: 1.5;">
+          You are about to permanently delete <strong>{{ current_matrix_floor.floor_number }}</strong> on <strong>{{ project.name }}</strong>.
+        </p>
+
+        <!-- Summary Metric Tags -->
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.15rem;">
+          <span style="background: #EEF2FF; color: #4B49AC; font-weight: 800; font-size: 0.74rem; padding: 3px 8px; border-radius: 6px;">
+            {{ current_matrix_floor.total_rooms }} Rooms to be deleted
+          </span>
+          <span style="background: #FFF5F5; color: #dc3545; font-weight: 800; font-size: 0.74rem; padding: 3px 8px; border-radius: 6px;">
+            {{ current_matrix_floor.defect_inspections.count }} Defect Record{{ current_matrix_floor.defect_inspections.count|pluralize }}
+          </span>
+        </div>
+
+        {% if current_matrix_floor.defect_inspections.exists %}
+        <div style="background: #FFF5F5; border: 1px solid #FFD2D2; border-radius: 6px; padding: 0.75rem; margin-bottom: 1.15rem; font-size: 0.78rem; color: #b91c1c;">
+          <div style="font-weight: 800; margin-bottom: 0.25rem;">
+            <i class="fa-solid fa-triangle-exclamation"></i> Warning: Defect history present!
+          </div>
+          This floor contains {{ current_matrix_floor.defect_inspections.count }} recorded defect inspection(s). Deleting will remove these QA/QC records.
+          <div style="margin-top: 0.5rem; padding-top: 0.4rem; border-top: 1px dashed #ffd2d2;">
+            <label style="display: flex; align-items: center; gap: 0.45rem; font-weight: 700; cursor: pointer; margin: 0; color: #991b1b;">
+              <input type="checkbox" name="confirm_force_delete" value="1" required class="form-check-input">
+              <span>I acknowledge this floor contains defect records and confirm deletion.</span>
+            </label>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Password Confirmation Input -->
+        <div style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">
+            <i class="fa-solid fa-lock"></i> Enter Your Password to Confirm Deletion <span style="color: var(--skydash-danger);">*</span>
+          </label>
+          <input type="password" name="password" class="form-control" placeholder="Enter your current login password" required autocomplete="current-password" autofocus>
+          <div style="font-size: 0.72rem; color: var(--text-body); margin-top: 0.3rem;">
+            For security, your password must be authenticated before any level or room data is deleted.
+          </div>
+        </div>
+
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.65rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalDeleteFloor')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary" style="background: var(--skydash-danger); border-color: var(--skydash-danger); font-weight: 800;">
+          <i class="fa-solid fa-trash-can"></i> Confirm & Delete Level
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- ========================================================================== -->
+<!-- MODAL 8: DELETE ENTIRE PROJECT SITE (CONFIRM PASSWORD REQUIRED)           -->
+<!-- ========================================================================== -->
+<div class="mep-modal-backdrop" id="modalDeleteProject">
+  <div class="mep-modal" style="max-width: 540px;">
+    <div class="skydash-card-header" style="background: #FFF5F5; border-bottom: 1px solid #FFD2D2; padding: 1.15rem 1.4rem;">
+      <div>
+        <h3 class="skydash-card-title" style="color: var(--skydash-danger); margin: 0; font-size: 1.15rem;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Delete Project Site: {{ project.name }}</span>
+        </h3>
+        <span style="font-size: 0.74rem; color: #b91c1c; margin-top: 2px; display: block;">
+          Irreversible Action &bull; Password Verification Required
+        </span>
+      </div>
+      <button type="button" onclick="closeModal('modalDeleteProject')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" action="{% url 'project_delete' project.id %}">
+      {% csrf_token %}
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        
+        <p style="font-size: 0.86rem; color: var(--text-dark); margin: 0 0 1rem 0; line-height: 1.5;">
+          Are you sure you want to delete the entire project site <strong>{{ project.name }}</strong>?
+        </p>
+
+        <!-- Project Destruction Impact Metric Badges -->
+        <div style="background: #FFF5F5; border: 1px solid #FFD2D2; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.15rem;">
+          <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #b91c1c; margin-bottom: 0.5rem; letter-spacing: 0.04em;">
+            Data That Will Be Permanently Removed:
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; font-size: 0.78rem;">
+            <div>
+              <span style="color: #64748b;">Levels / Floors:</span>
+              <strong style="color: var(--text-dark);">{{ project.floors.count }} Levels</strong>
+            </div>
+            <div>
+              <span style="color: #64748b;">Total Defects:</span>
+              <strong style="color: var(--skydash-danger);">{{ all_inspections.count }} Records</strong>
+            </div>
+            <div>
+              <span style="color: #64748b;">Open Severe NCRs:</span>
+              <strong style="color: var(--skydash-danger);">{{ ncr_inspections.count }} NCRs</strong>
+            </div>
+            <div>
+              <span style="color: #64748b;">Lead PM:</span>
+              <strong style="color: var(--text-dark);">{{ project.pm_name }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confirmation Checkbox -->
+        <div style="margin-bottom: 1.15rem;">
+          <label style="display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.78rem; font-weight: 700; color: #991b1b; cursor: pointer;">
+            <input type="checkbox" required class="form-check-input" style="margin-top: 2px;">
+            <span>I understand that this action is permanent and all QA/QC milestone tracking and defect history for this site will be wiped.</span>
+          </label>
+        </div>
+
+        <!-- Password Confirmation Input -->
+        <div style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">
+            <i class="fa-solid fa-lock"></i> Enter Your Password to Authorize Site Deletion <span style="color: var(--skydash-danger);">*</span>
+          </label>
+          <input type="password" name="password" class="form-control" placeholder="Enter your current login password" required autocomplete="current-password">
+          <div style="font-size: 0.72rem; color: var(--text-body); margin-top: 0.3rem;">
+            Please enter your password to authorize permanent destruction of this project site.
+          </div>
+        </div>
+
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.65rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalDeleteProject')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary" style="background: var(--skydash-danger); border-color: var(--skydash-danger); font-weight: 800;">
+          <i class="fa-solid fa-skull-crossbones"></i> Confirm & Delete Entire Site
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,172 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Register Engineer &bull; Skydash MEP QA/QC</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'css/qaqc-admin.css' %}">
+
+  <style>
+    body {
+      background: #F5F7FF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .auth-card {
+      background: #FFFFFF;
+      border-radius: var(--radius-xl);
+      max-width: 520px;
+      width: 100%;
+      padding: 2.5rem 2.25rem;
+      box-shadow: 0 10px 30px rgba(180, 190, 220, 0.22);
+      border: 1px solid var(--border-light);
+    }
+    .auth-brand {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+    .auth-logo-badge {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--skydash-primary) 0%, #7978E9 100%);
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 6px 16px rgba(75, 73, 172, 0.35);
+    }
+    .auth-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text-dark);
+      letter-spacing: -0.025em;
+      margin: 0;
+    }
+    .auth-title span {
+      color: var(--skydash-primary);
+    }
+    .auth-subtitle {
+      font-size: 0.84rem;
+      color: var(--text-body);
+      margin-top: 0.35rem;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .form-group {
+      margin-bottom: 1.15rem;
+    }
+    .auth-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border-light);
+      font-size: 0.84rem;
+      color: var(--text-body);
+    }
+    .auth-footer a {
+      color: var(--skydash-primary);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    @media (max-width: 540px) {
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+      .auth-card {
+        padding: 1.75rem 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo-badge">
+        <i class="fa-solid fa-user-plus"></i>
+      </div>
+      <h2 class="auth-title">Register <span>Profile</span></h2>
+      <p class="auth-subtitle">Join the MEP QA/QC Engineering Control Center</p>
+    </div>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="mep-alert mep-alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+          <span>{{ message }}</span>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" action="{% url 'register' %}">
+      {% csrf_token %}
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="id_first_name">First Name</label>
+          {{ form.first_name }}
+          {{ form.first_name.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="id_last_name">Last Name</label>
+          {{ form.last_name }}
+          {{ form.last_name.errors }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="id_username">Engineering Username</label>
+        {{ form.username }}
+        {{ form.username.errors }}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="id_email">Corporate Email</label>
+        {{ form.email }}
+        {{ form.email.errors }}
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="id_role">MEP Specialization Role</label>
+        {{ form.role }}
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="id_password">Password</label>
+          {{ form.password }}
+          {{ form.password.errors }}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="id_password_confirm">Confirm Password</label>
+          {{ form.password_confirm }}
+          {{ form.password_confirm.errors }}
+        </div>
+      </div>
+
+      <button type="submit" class="btn-skydash btn-skydash-primary" style="width: 100%; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.95rem;">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Create Account & Enter Dashboard</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="{% url 'login' %}">Sign In</a>
+    </div>
+  </div>
+</body>
+</html>

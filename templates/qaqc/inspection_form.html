@@ -1,0 +1,896 @@
+{% extends 'qaqc/base.html' %}
+
+{% block title %}Site Camera & Markup Tool &bull; Skydash MEP QA/QC{% endblock %}
+{% block page_heading %}Site Camera & Defect Markup{% endblock %}
+
+{% block content %}
+<div style="max-width: 960px; margin: 0 auto;">
+  <div class="skydash-card">
+    <div class="skydash-card-header" style="background: #FAFBFD;">
+      <div>
+        <h3 class="skydash-card-title">
+          <i class="fa-solid fa-camera" style="color: var(--skydash-primary);"></i>
+          <span>Site Inspection Camera & Image Markup Tool</span>
+        </h3>
+        <span style="font-size: 0.78rem; color: var(--text-body);">
+          Snap or upload photos, draw red freehand markups and arrows, position draggable inspection badges, and preview before saving.
+        </span>
+      </div>
+      <a href="{% url 'inspections_list' %}" class="btn-skydash btn-skydash-outline btn-skydash-sm">
+        &larr; Back to Registry
+      </a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="defectInspectionForm">
+      {% csrf_token %}
+      {{ form.overlay_positions_raw }}
+      {{ form.original_image_base64 }}
+      {{ form.annotated_image_base64 }}
+
+      <div class="skydash-card-body">
+        <!-- Site & Trade Discipline Row -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem;">
+          <div class="form-group">
+            <label class="form-label" for="id_project">
+              <i class="fa-solid fa-building" style="color: var(--skydash-primary);"></i> Project Site *
+            </label>
+            {{ form.project }}
+            {{ form.project.errors }}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="id_department">
+              <i class="fa-solid fa-layer-group" style="color: var(--dept-hvac);"></i> Engineering Trade / Department *
+            </label>
+            {{ form.department }}
+            {{ form.department.errors }}
+          </div>
+        </div>
+
+        <!-- Phase 5: Dynamic Relational Floor & Room Row -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem;">
+          <div class="form-group">
+            <label class="form-label" for="id_floor">
+              <i class="fa-solid fa-layer-group" style="color: var(--skydash-primary);"></i> Dynamic Floor Level *
+            </label>
+            {{ form.floor }}
+            <span style="font-size: 0.72rem; color: var(--text-body);">Selecting a floor dynamically loads its room zones</span>
+            {{ form.floor.errors }}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="id_room">
+              <i class="fa-solid fa-door-open" style="color: var(--skydash-primary);"></i> Room / Inspection Zone *
+            </label>
+            {{ form.room }}
+            <span style="font-size: 0.72rem; color: var(--text-body);" id="roomLoadIndicator">Select floor to load available rooms</span>
+            {{ form.room.errors }}
+          </div>
+        </div>
+
+        <!-- Specific Unit & Numeric Fallback Row -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem; background: #FAFBFD; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px dashed var(--border-light);">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="id_floor_number" style="font-size: 0.76rem;">
+              <i class="fa-solid fa-stairs"></i> Floor Numeric Code
+            </label>
+            {{ form.floor_number }}
+            {{ form.floor_number.errors }}
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="id_apartment_number" style="font-size: 0.76rem;">
+              <i class="fa-solid fa-location-dot"></i> Specific Room / Unit Zone
+            </label>
+            {{ form.apartment_number }}
+            <span style="font-size: 0.71rem; color: var(--text-body);">e.g., Apt 1402 Ceiling Void, Electrical Shaft S-3</span>
+            {{ form.apartment_number.errors }}
+          </div>
+        </div>
+
+        <!-- Faults Description -->
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label class="form-label" for="id_faults_description">
+            <i class="fa-solid fa-pen-to-square"></i> Fault / Non-Conformance Description *
+          </label>
+          {{ form.faults_description }}
+          <span style="font-size: 0.72rem; color: var(--text-body);">Describe defect details, standard violations (ASHRAE, NFPA, DEWA), and required corrective action.</span>
+          {{ form.faults_description.errors }}
+        </div>
+
+        <!-- Status -->
+        <div class="form-group" style="margin-bottom: 1.5rem; max-width: 320px;">
+          <label class="form-label" for="id_status">
+            <i class="fa-solid fa-shield-halved"></i> Clearance Status *
+          </label>
+          {{ form.status }}
+          {{ form.status.errors }}
+        </div>
+
+        <!-- ================================================================
+             Phase 3: Camera Capture & Canvas Image Markup System
+             ================================================================ -->
+        <div style="border-top: 1px solid var(--border-light); padding-top: 1.5rem; margin-top: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--text-dark); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-paintbrush" style="color: var(--skydash-danger);"></i>
+                Inspection Camera & Interactive Canvas Markup
+              </h4>
+              <span style="font-size: 0.78rem; color: var(--text-body);">Draw red markup lines, defect arrows, and drag metadata badges directly over the photo.</span>
+            </div>
+
+            <!-- Camera & File Trigger Buttons -->
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <!-- HTML5 Camera Capture Input (capture="environment") -->
+              <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+              <button type="button" class="btn-skydash btn-skydash-primary btn-skydash-sm" onclick="document.getElementById('cameraInput').click()">
+                <i class="fa-solid fa-camera"></i> Snap Photo (Camera)
+              </button>
+
+              <!-- Standard File Upload Input -->
+              <input type="file" id="fileInput" accept="image/*" style="display: none;">
+              <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" onclick="document.getElementById('fileInput').click()">
+                <i class="fa-solid fa-upload"></i> Upload Photo
+              </button>
+            </div>
+          </div>
+
+          <!-- Hidden standard Django inputs -->
+          <div style="display: none;">
+            {{ form.original_image }}
+            {{ form.annotated_image }}
+          </div>
+
+          <!-- Canvas Markup Workspace -->
+          <div class="canvas-markup-workspace" id="canvasWorkspace">
+            <!-- Canvas Toolbar -->
+            <div class="canvas-toolbar">
+              <div class="canvas-tools-group">
+                <!-- Freehand Pen Tool -->
+                <button type="button" class="btn-tool active" id="toolPen" onclick="selectTool('pen')" title="Freehand Red Markup Drawing">
+                  <i class="fa-solid fa-pencil"></i> Red Pen
+                </button>
+
+                <!-- Arrow Tool -->
+                <button type="button" class="btn-tool" id="toolArrow" onclick="selectTool('arrow')" title="Draw Precision Defect Arrow">
+                  <i class="fa-solid fa-arrow-right"></i> Pointer Arrow
+                </button>
+
+                <!-- Circle Tool -->
+                <button type="button" class="btn-tool" id="toolCircle" onclick="selectTool('circle')" title="Draw Defect Bounding Circle">
+                  <i class="fa-solid fa-circle-notch"></i> Circle Zone
+                </button>
+
+                <!-- Stroke Width Selector -->
+                <select id="strokeWidthSelect" onchange="setStrokeWidth(this.value)" style="background: #374151; color: #fff; border: 1px solid #4B5563; border-radius: 6px; padding: 0.35rem 0.5rem; font-size: 0.76rem; font-weight: 700;">
+                  <option value="4">Line: Thin (4px)</option>
+                  <option value="7" selected>Line: Medium (7px)</option>
+                  <option value="12">Line: Thick (12px)</option>
+                </select>
+              </div>
+
+              <div class="canvas-tools-group">
+                <button type="button" class="btn-tool" onclick="undoCanvas()" title="Undo last markup">
+                  <i class="fa-solid fa-rotate-left"></i> Undo
+                </button>
+                <button type="button" class="btn-tool" onclick="clearCanvasMarkup()" title="Clear drawings back to photo">
+                  <i class="fa-solid fa-trash"></i> Clear Drawings
+                </button>
+              </div>
+            </div>
+
+            <!-- Canvas Container with Draggable Badges -->
+            <div class="canvas-container-relative" id="canvasWrapper">
+              <!-- HTML5 Canvas -->
+              <canvas id="markupCanvas"></canvas>
+
+              <!-- Placeholder when no photo loaded -->
+              <div id="canvasPlaceholder" style="position: absolute; text-align: center; color: #9CA3AF; padding: 2rem;">
+                <i class="fa-solid fa-camera-retro" style="font-size: 3rem; color: #7978E9; margin-bottom: 0.75rem; display: block; opacity: 0.8;"></i>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #FFFFFF; margin-bottom: 0.35rem;">No Photo Captured Yet</div>
+                <div style="font-size: 0.82rem; color: #9CA3AF; max-width: 340px; margin: 0 auto 1.25rem auto;">
+                  Click "Snap Photo (Camera)" on mobile or "Upload Photo" to begin freehand markup and arrow annotation.
+                </div>
+                <button type="button" class="btn-skydash btn-skydash-primary btn-skydash-sm" onclick="document.getElementById('cameraInput').click()">
+                  <i class="fa-solid fa-camera"></i> Launch Camera
+                </button>
+              </div>
+
+              <!-- ============================================================
+                   Draggable Text Badge Overlays Directly Over the Image
+                   ============================================================ -->
+              <!-- Badge 1: Floor -->
+              <div class="draggable-badge badge-floor-tag" id="badgeFloor" style="left: 20%; top: 15%; display: none;" title="Drag to reposition badge">
+                <i class="fa-solid fa-stairs badge-icon" style="color: var(--skydash-primary);"></i>
+                <span id="badgeFloorText">Floor: Level 14</span>
+              </div>
+
+              <!-- Badge 2: Apartment / Zone -->
+              <div class="draggable-badge badge-zone-tag" id="badgeZone" style="left: 20%; top: 25%; display: none;" title="Drag to reposition badge">
+                <i class="fa-solid fa-door-open badge-icon" style="color: var(--skydash-warning);"></i>
+                <span id="badgeZoneText">Zone: Apt 1402 Ceiling Void</span>
+              </div>
+
+              <!-- Badge 3: Department / Trade -->
+              <div class="draggable-badge badge-dept-tag" id="badgeDept" style="left: 80%; top: 15%; display: none;" title="Drag to reposition badge">
+                <i class="fa-solid fa-layer-group badge-icon" style="color: var(--dept-hvac);"></i>
+                <span id="badgeDeptText">Trade: HVAC</span>
+              </div>
+
+              <!-- Badge 4: Fault Description -->
+              <div class="draggable-badge badge-desc-tag" id="badgeDesc" style="left: 50%; top: 85%; display: none;" title="Drag to reposition badge">
+                <i class="fa-solid fa-triangle-exclamation badge-icon" style="color: var(--skydash-danger);"></i>
+                <span id="badgeDescText">Defect: FCU duct loose at collar</span>
+              </div>
+
+              <!-- Badge 5: Date Stamp -->
+              <div class="draggable-badge badge-date-tag" id="badgeDate" style="left: 80%; top: 85%; display: none;" title="Drag to reposition badge">
+                <i class="fa-solid fa-calendar badge-icon" style="color: var(--skydash-success);"></i>
+                <span id="badgeDateText">Date: 2026-10-27</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Draggable Badges Controls Panel -->
+          <div class="badges-toggle-panel" id="badgeControlsPanel" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <span style="font-size: 0.84rem; font-weight: 800; color: var(--text-dark);">
+                <i class="fa-solid fa-tags" style="color: var(--skydash-primary);"></i> Draggable Text Badges Over Image:
+              </span>
+              <span style="font-size: 0.74rem; color: var(--text-body);">💡 Click & drag any badge directly over the photo to position it.</span>
+            </div>
+
+            <div style="display: flex; gap: 0.85rem; flex-wrap: wrap;">
+              <label class="badge-toggle-chip">
+                <input type="checkbox" id="chkFloor" checked onchange="toggleBadge('badgeFloor', this.checked)"> Floor
+              </label>
+              <label class="badge-toggle-chip">
+                <input type="checkbox" id="chkZone" checked onchange="toggleBadge('badgeZone', this.checked)"> Apartment / Zone
+              </label>
+              <label class="badge-toggle-chip">
+                <input type="checkbox" id="chkDept" checked onchange="toggleBadge('badgeDept', this.checked)"> Department
+              </label>
+              <label class="badge-toggle-chip">
+                <input type="checkbox" id="chkDesc" checked onchange="toggleBadge('badgeDesc', this.checked)"> Fault Description
+              </label>
+              <label class="badge-toggle-chip">
+                <input type="checkbox" id="chkDate" checked onchange="toggleBadge('badgeDate', this.checked)"> Date Stamp
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div style="padding: 1.25rem 1.6rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{% url 'inspections_list' %}" class="btn-skydash btn-skydash-outline">Cancel</a>
+        
+        <!-- Live Preview Button -->
+        <button type="button" class="btn-skydash btn-skydash-primary" onclick="openPreviewModal()" id="btnPreviewConfirm">
+          <i class="fa-solid fa-eye"></i> Preview & Confirm Inspection
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================================
+     Live Interactive Preview Modal Before Saving
+     ======================================================================== -->
+<div class="mep-modal-backdrop" id="previewInspectionModal">
+  <div class="mep-modal" style="max-width: 840px;">
+    <div class="skydash-card-header" style="background: #FAFBFD; padding: 1.25rem 1.6rem;">
+      <h3 class="skydash-card-title">
+        <i class="fa-solid fa-circle-check" style="color: var(--skydash-success);"></i>
+        <span>Live Inspection Markup Preview</span>
+      </h3>
+      <button type="button" onclick="closeModal('previewInspectionModal')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <div class="skydash-card-body" style="padding: 1.5rem;">
+      <!-- Comparison Grid: Final Markup vs Original -->
+      <div class="preview-comparison-grid">
+        <!-- Final Baked Markup Photo -->
+        <div>
+          <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-dark); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fa-solid fa-paintbrush" style="color: var(--skydash-danger);"></i>
+            Final Annotated Image (Saved)
+          </div>
+          <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-light); background: #171822; min-height: 220px; display: flex; align-items: center; justify-content: center;">
+            <img id="previewBakedImage" src="" alt="Annotated Preview" style="width: 100%; height: auto; display: block;">
+          </div>
+        </div>
+
+        <!-- Original Clean Photo -->
+        <div>
+          <div style="font-size: 0.8rem; font-weight: 800; color: var(--text-dark); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fa-solid fa-camera" style="color: var(--skydash-primary);"></i>
+            Original Unmarked Photo
+          </div>
+          <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-light); background: #171822; min-height: 220px; display: flex; align-items: center; justify-content: center;">
+            <img id="previewOriginalImage" src="" alt="Original Preview" style="width: 100%; height: auto; display: block;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Defect Summary Review Card -->
+      <div style="background: #FAFBFD; border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; font-size: 0.82rem;">
+          <div>
+            <span style="color: var(--text-body); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Trade Department</span>
+            <strong id="summaryDeptText" style="color: var(--text-dark);">-</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-body); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Floor & Zone</span>
+            <strong id="summaryLocationText" style="color: var(--text-dark);">-</strong>
+          </div>
+          <div>
+            <span style="color: var(--text-body); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Clearance Status</span>
+            <strong id="summaryStatusText" style="color: var(--text-dark);">-</strong>
+          </div>
+        </div>
+        <div style="margin-top: 0.75rem; border-top: 1px solid var(--border-light); padding-top: 0.65rem; font-size: 0.82rem;">
+          <span style="color: var(--text-body); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; display: block;">Non-Conformance Description</span>
+          <span id="summaryDescText" style="color: var(--text-dark); line-height: 1.4;">-</span>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('previewInspectionModal')">
+          <i class="fa-solid fa-pencil"></i> Return to Edit Markup
+        </button>
+        <button type="button" class="btn-skydash btn-skydash-primary" onclick="submitFinalInspectionForm()">
+          <i class="fa-solid fa-check-double"></i> Confirm & Save Defect Inspection
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ==========================================================================
+// Phase 3: Canvas Markup, Camera & Draggable Badges Engine
+// ==========================================================================
+
+const canvas = document.getElementById('markupCanvas');
+const ctx = canvas.getContext('2d');
+const wrapper = document.getElementById('canvasWrapper');
+const placeholder = document.getElementById('canvasPlaceholder');
+const badgeControlsPanel = document.getElementById('badgeControlsPanel');
+
+// State variables
+let baseImage = null;
+let currentTool = 'pen'; // 'pen', 'arrow', 'circle'
+let strokeColor = '#FF4747'; // Red markup standard
+let strokeWidth = 7;
+let isDrawing = false;
+let startX = 0, startY = 0;
+let undoStack = [];
+const MAX_UNDO = 15;
+
+// Draggable Badges Positions (in percentages relative to canvas)
+let badgePositions = {
+  badgeFloor: { x: 22, y: 15, visible: true },
+  badgeZone: { x: 22, y: 25, visible: true },
+  badgeDept: { x: 78, y: 15, visible: true },
+  badgeDesc: { x: 50, y: 85, visible: true },
+  badgeDate: { x: 78, y: 85, visible: true }
+};
+
+// Form element bindings
+const inputFloor = document.getElementById('id_floor_number');
+const inputZone = document.getElementById('id_apartment_number');
+const inputDept = document.getElementById('id_department');
+const inputDesc = document.getElementById('id_faults_description');
+const inputStatus = document.getElementById('id_status');
+
+function updateBadgeTexts() {
+  const fl = inputFloor ? inputFloor.value || '1' : '1';
+  const zn = inputZone ? inputZone.value || 'General Zone' : 'General Zone';
+  const dp = inputDept ? inputDept.value || 'HVAC' : 'HVAC';
+  const ds = inputDesc ? (inputDesc.value || 'Defect Observation') : 'Defect Observation';
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 5);
+
+  document.getElementById('badgeFloorText').textContent = `Level ${fl}`;
+  document.getElementById('badgeZoneText').textContent = zn;
+  document.getElementById('badgeDeptText').textContent = dp;
+  document.getElementById('badgeDescText').textContent = ds.slice(0, 36) + (ds.length > 36 ? '...' : '');
+  document.getElementById('badgeDateText').textContent = dateStr;
+}
+
+[inputFloor, inputZone, inputDept, inputDesc].forEach(el => {
+  if (el) el.addEventListener('input', updateBadgeTexts);
+});
+
+// Tool selector
+function selectTool(tool) {
+  currentTool = tool;
+  document.querySelectorAll('.btn-tool').forEach(btn => btn.classList.remove('active'));
+  if (tool === 'pen') document.getElementById('toolPen').classList.add('active');
+  if (tool === 'arrow') document.getElementById('toolArrow').classList.add('active');
+  if (tool === 'circle') document.getElementById('toolCircle').classList.add('active');
+}
+
+function setStrokeWidth(w) {
+  strokeWidth = parseInt(w, 10);
+}
+
+// Image Loading: From Camera Capture or File Upload
+function handleFileSelect(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (evt) {
+    const img = new Image();
+    img.onload = function () {
+      baseImage = img;
+      initCanvasWithImage(img);
+      document.getElementById('id_original_image_base64').value = evt.target.result;
+    };
+    img.src = evt.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+document.getElementById('cameraInput').addEventListener('change', function (e) {
+  if (e.target.files && e.target.files[0]) {
+    handleFileSelect(e.target.files[0]);
+  }
+});
+
+document.getElementById('fileInput').addEventListener('change', function (e) {
+  if (e.target.files && e.target.files[0]) {
+    handleFileSelect(e.target.files[0]);
+  }
+});
+
+// Canvas Setup
+function initCanvasWithImage(img) {
+  const maxW = 1000;
+  let w = img.width;
+  let h = img.height;
+
+  if (w > maxW) {
+    h = Math.round((h * maxW) / w);
+    w = maxW;
+  }
+
+  canvas.width = w;
+  canvas.height = h;
+
+  ctx.drawImage(img, 0, 0, w, h);
+  saveCanvasState();
+
+  placeholder.style.display = 'none';
+  badgeControlsPanel.style.display = 'flex';
+
+  // Show badges
+  Object.keys(badgePositions).forEach(id => {
+    const el = document.getElementById(id);
+    if (el && badgePositions[id].visible) {
+      el.style.display = 'flex';
+      positionBadgeElement(el, badgePositions[id].x, badgePositions[id].y);
+    }
+  });
+
+  updateBadgeTexts();
+}
+
+function saveCanvasState() {
+  if (undoStack.length >= MAX_UNDO) {
+    undoStack.shift();
+  }
+  undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+}
+
+function undoCanvas() {
+  if (undoStack.length > 1) {
+    undoStack.pop(); // discard current
+    const prev = undoStack[undoStack.length - 1];
+    ctx.putImageData(prev, 0, 0);
+  }
+}
+
+function clearCanvasMarkup() {
+  if (!baseImage) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+  undoStack = [];
+  saveCanvasState();
+}
+
+// Canvas Drawing Coordinates helper
+function getCanvasCoords(evt) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  let clientX, clientY;
+  if (evt.touches && evt.touches.length > 0) {
+    clientX = evt.touches[0].clientX;
+    clientY = evt.touches[0].clientY;
+  } else {
+    clientX = evt.clientX;
+    clientY = evt.clientY;
+  }
+
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
+}
+
+// Drawing Event Listeners (Mouse & Touch)
+function startDrawing(e) {
+  if (!baseImage) return;
+  e.preventDefault();
+  isDrawing = true;
+  const coords = getCanvasCoords(e);
+  startX = coords.x;
+  startY = coords.y;
+
+  if (currentTool === 'pen') {
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+  }
+}
+
+let lastSnapshot = null;
+
+function drawMove(e) {
+  if (!isDrawing || !baseImage) return;
+  e.preventDefault();
+  const coords = getCanvasCoords(e);
+
+  if (currentTool === 'pen') {
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = strokeWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineTo(coords.x, coords.y);
+    ctx.stroke();
+  } else if (currentTool === 'arrow') {
+    // Restore state before dragging to show live preview arrow
+    const last = undoStack[undoStack.length - 1];
+    ctx.putImageData(last, 0, 0);
+    drawArrow(startX, startY, coords.x, coords.y);
+  } else if (currentTool === 'circle') {
+    const last = undoStack[undoStack.length - 1];
+    ctx.putImageData(last, 0, 0);
+    drawCircle(startX, startY, coords.x, coords.y);
+  }
+}
+
+function stopDrawing(e) {
+  if (!isDrawing) return;
+  isDrawing = false;
+  if (currentTool === 'pen') {
+    ctx.closePath();
+  }
+  saveCanvasState();
+}
+
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', drawMove);
+window.addEventListener('mouseup', stopDrawing);
+
+canvas.addEventListener('touchstart', startDrawing, { passive: false });
+canvas.addEventListener('touchmove', drawMove, { passive: false });
+window.addEventListener('touchend', stopDrawing);
+
+// Draw Arrow Helper
+function drawArrow(fromX, fromY, toX, toY) {
+  const headlen = strokeWidth * 3.2; // length of head in px
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  const angle = Math.atan2(dy, dx);
+
+  ctx.strokeStyle = strokeColor;
+  ctx.fillStyle = strokeColor;
+  ctx.lineWidth = strokeWidth;
+  ctx.lineCap = 'round';
+
+  // Shaft
+  ctx.beginPath();
+  ctx.moveTo(fromX, fromY);
+  ctx.lineTo(toX, toY);
+  ctx.stroke();
+
+  // Arrow Head
+  ctx.beginPath();
+  ctx.moveTo(toX, toY);
+  ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+  ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+  ctx.closePath();
+  ctx.fill();
+}
+
+// Draw Circle Helper
+function drawCircle(x1, y1, x2, y2) {
+  const radius = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = strokeWidth;
+  ctx.beginPath();
+  ctx.arc(x1, y1, radius, 0, 2 * Math.PI);
+  ctx.stroke();
+}
+
+// ==========================================================================
+// Draggable Text Badge Overlays Implementation
+// ==========================================================================
+
+function positionBadgeElement(el, xPercent, yPercent) {
+  el.style.left = xPercent + '%';
+  el.style.top = yPercent + '%';
+}
+
+function makeBadgeDraggable(badgeId) {
+  const badge = document.getElementById(badgeId);
+  if (!badge) return;
+
+  let isDragging = false;
+  let startMouseX = 0, startMouseY = 0;
+  let initialLeft = 0, initialTop = 0;
+
+  function onDragStart(e) {
+    isDragging = true;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    startMouseX = clientX;
+    startMouseY = clientY;
+
+    initialLeft = badge.offsetLeft;
+    initialTop = badge.offsetTop;
+
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+    document.addEventListener('touchmove', onDragMove, { passive: false });
+    document.addEventListener('touchend', onDragEnd);
+  }
+
+  function onDragMove(e) {
+    if (!isDragging) return;
+    if (e.preventDefault) e.preventDefault();
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    const dx = clientX - startMouseX;
+    const dy = clientY - startMouseY;
+
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const newLeft = initialLeft + dx;
+    const newTop = initialTop + dy;
+
+    // Convert to percentage
+    const xPct = Math.max(5, Math.min(95, (newLeft / wrapperRect.width) * 100));
+    const yPct = Math.max(5, Math.min(95, (newTop / wrapperRect.height) * 100));
+
+    badge.style.left = xPct.toFixed(1) + '%';
+    badge.style.top = yPct.toFixed(1) + '%';
+
+    badgePositions[badgeId].x = parseFloat(xPct.toFixed(1));
+    badgePositions[badgeId].y = parseFloat(yPct.toFixed(1));
+  }
+
+  function onDragEnd() {
+    isDragging = false;
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+    document.removeEventListener('touchmove', onDragMove);
+    document.removeEventListener('touchend', onDragEnd);
+  }
+
+  badge.addEventListener('mousedown', onDragStart);
+  badge.addEventListener('touchstart', onDragStart, { passive: false });
+}
+
+['badgeFloor', 'badgeZone', 'badgeDept', 'badgeDesc', 'badgeDate'].forEach(makeBadgeDraggable);
+
+function toggleBadge(badgeId, isVisible) {
+  badgePositions[badgeId].visible = isVisible;
+  const el = document.getElementById(badgeId);
+  if (el) {
+    el.style.display = isVisible ? 'flex' : 'none';
+  }
+}
+
+// ==========================================================================
+// Live Interactive Preview Modal
+// ==========================================================================
+
+function openPreviewModal() {
+  if (!baseImage) {
+    showToast('Please capture or upload an inspection photo first.', 'error');
+    return;
+  }
+
+  updateBadgeTexts();
+
+  // Create an offscreen canvas to bake drawing + badges into composite image
+  const bakeCanvas = document.createElement('canvas');
+  bakeCanvas.width = canvas.width;
+  bakeCanvas.height = canvas.height;
+  const bCtx = bakeCanvas.getContext('2d');
+
+  // 1. Draw annotated markup canvas
+  bCtx.drawImage(canvas, 0, 0);
+
+  // 2. Bake active draggable text badges directly into image
+  const wrapperRect = wrapper.getBoundingClientRect();
+  const scale = canvas.width / wrapperRect.width;
+
+  Object.keys(badgePositions).forEach(id => {
+    if (!badgePositions[id].visible) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const text = el.innerText.trim();
+    const x = (badgePositions[id].x / 100) * canvas.width;
+    const y = (badgePositions[id].y / 100) * canvas.height;
+
+    // Draw stylish pill badge onto canvas
+    bCtx.font = 'bold ' + Math.max(14, Math.round(16 * scale)) + 'px Manrope, sans-serif';
+    const paddingX = 14 * scale;
+    const paddingY = 8 * scale;
+    const textWidth = bCtx.measureText(text).width;
+    const boxW = textWidth + paddingX * 2;
+    const boxH = 30 * scale;
+    const boxX = x - boxW / 2;
+    const boxY = y - boxH / 2;
+
+    // Pill background
+    bCtx.save();
+    bCtx.fillStyle = 'rgba(17, 24, 39, 0.9)';
+    bCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+    bCtx.lineWidth = 2 * scale;
+    bCtx.beginPath();
+    bCtx.roundRect(boxX, boxY, boxW, boxH, boxH / 2);
+    bCtx.fill();
+    bCtx.stroke();
+
+    // Text
+    bCtx.fillStyle = '#FFFFFF';
+    bCtx.textBaseline = 'middle';
+    bCtx.textAlign = 'center';
+    bCtx.fillText(text, x, y);
+    bCtx.restore();
+  });
+
+  // Extract base64
+  const bakedBase64 = bakeCanvas.toDataURL('image/jpeg', 0.92);
+  document.getElementById('id_annotated_image_base64').value = bakedBase64;
+
+  // Set modal previews
+  document.getElementById('previewBakedImage').src = bakedBase64;
+  document.getElementById('previewOriginalImage').src = document.getElementById('id_original_image_base64').value || bakedBase64;
+
+  // Populate summary review card
+  document.getElementById('summaryDeptText').textContent = inputDept.value || 'HVAC';
+  document.getElementById('summaryLocationText').textContent = `Level ${inputFloor.value || '1'} (${inputZone.value || 'General Area'})`;
+  document.getElementById('summaryStatusText').textContent = inputStatus.value || 'Pending Clearance';
+  document.getElementById('summaryDescText').textContent = inputDesc.value || 'No detailed fault description entered.';
+
+  // Save metadata to overlay_positions JSONField
+  document.getElementById('id_overlay_positions_raw').value = JSON.stringify(badgePositions);
+
+  // Show modal
+  openModal('previewInspectionModal');
+}
+
+function submitFinalInspectionForm() {
+  document.getElementById('defectInspectionForm').submit();
+}
+
+// ==========================================================================
+// Phase 5: Dynamic Floor & Room Selection Cascade
+// ==========================================================================
+const selectProject = document.getElementById('id_project');
+const selectFloor = document.getElementById('id_floor');
+const selectRoom = document.getElementById('id_room');
+const roomLoadIndicator = document.getElementById('roomLoadIndicator');
+
+async function handleFloorChange(targetRoomId = null) {
+  if (!selectFloor || !selectRoom) return;
+  const floorId = selectFloor.value;
+
+  if (!floorId) {
+    selectRoom.innerHTML = '<option value="">-- Select Floor Level First --</option>';
+    if (roomLoadIndicator) roomLoadIndicator.textContent = 'Select floor to load available rooms';
+    return;
+  }
+
+  // Update floor numeric code if floor text contains digits
+  const selectedText = selectFloor.options[selectFloor.selectedIndex] ? selectFloor.options[selectFloor.selectedIndex].text : '';
+  const match = selectedText.match(/-?\d+/);
+  if (match && inputFloor) {
+    inputFloor.value = match[0];
+  }
+
+  if (roomLoadIndicator) roomLoadIndicator.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading rooms...';
+
+  try {
+    const res = await fetch(`/api/floors/${floorId}/rooms/`);
+    const data = await res.json();
+    if (data.success) {
+      let optionsHtml = '<option value="">-- Select Room / Zone --</option>';
+      data.rooms.forEach(rm => {
+        const snagLabel = rm.open_defects > 0 ? ` (${rm.open_defects} Open Defects)` : ' (0 Snags)';
+        const isSelected = (targetRoomId && String(targetRoomId) === String(rm.id)) ? 'selected' : '';
+        optionsHtml += `<option value="${rm.id}" ${isSelected}>${rm.room_number}${snagLabel}</option>`;
+      });
+      selectRoom.innerHTML = optionsHtml;
+      if (roomLoadIndicator) {
+        roomLoadIndicator.innerHTML = `<span style="color: var(--skydash-success); font-weight: 700;">${data.rooms.length} room(s) loaded</span>`;
+      }
+
+      if (targetRoomId) {
+        handleRoomChange();
+      }
+    }
+  } catch (err) {
+    if (roomLoadIndicator) roomLoadIndicator.textContent = 'Error loading rooms';
+  }
+  updateBadgeTexts();
+}
+
+function handleRoomChange() {
+  if (!selectRoom || !selectRoom.value) return;
+  const selectedOpt = selectRoom.options[selectRoom.selectedIndex];
+  if (selectedOpt) {
+    let cleanName = selectedOpt.text.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    if (inputZone) {
+      inputZone.value = cleanName;
+    }
+  }
+  updateBadgeTexts();
+}
+
+async function handleProjectChange() {
+  if (!selectProject || !selectFloor) return;
+  const projectId = selectProject.value;
+  if (!projectId) return;
+
+  try {
+    const res = await fetch(`/api/projects/${projectId}/floors/`);
+    const data = await res.json();
+    if (data.success) {
+      let optionsHtml = '<option value="">-- Select Floor Level --</option>';
+      data.floors.forEach(fl => {
+        optionsHtml += `<option value="${fl.id}">${fl.floor_number} (${fl.room_count} Rooms)</option>`;
+      });
+      selectFloor.innerHTML = optionsHtml;
+      if (selectRoom) {
+        selectRoom.innerHTML = '<option value="">-- Select Floor Level First --</option>';
+      }
+    }
+  } catch (err) {}
+}
+
+if (selectProject) selectProject.addEventListener('change', handleProjectChange);
+if (selectFloor) selectFloor.addEventListener('change', () => handleFloorChange());
+if (selectRoom) selectRoom.addEventListener('change', handleRoomChange);
+
+// Initial binding
+document.addEventListener('DOMContentLoaded', function () {
+  updateBadgeTexts();
+
+  // Read URL query parameters for pre-selected floor & room
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramFloor = urlParams.get('floor');
+  const paramRoom = urlParams.get('room');
+
+  if (paramFloor && selectFloor) {
+    selectFloor.value = paramFloor;
+    handleFloorChange(paramRoom);
+  } else if (selectFloor && selectFloor.value) {
+    const currentRoomId = selectRoom ? selectRoom.value : null;
+    handleFloorChange(currentRoomId);
+  }
+});
+</script>
+{% endblock %}

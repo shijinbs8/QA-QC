@@ -1,0 +1,1444 @@
+/* ==========================================================================
+   MEP QA/QC Dashboard - Skydash Admin & Mobile App Theme
+   Optimized for Desktop, Tablet (iPad), and Mobile (iPhone/Android) App Layout
+   ========================================================================== */
+
+:root {
+  /* Skydash Signature Brand Colors */
+  --skydash-primary: #4B49AC;
+  --skydash-primary-hover: #3f3da0;
+  --skydash-primary-light: #F5F7FF;
+  --skydash-primary-soft: #eceffe;
+
+  --skydash-card-blue: #7DA0FA;
+  --skydash-card-dark-blue: #4747A1;
+  --skydash-card-purple: #7978E9;
+  --skydash-card-coral: #F3797E;
+  --skydash-card-amber: #FFB64D;
+  --skydash-card-green: #57B657;
+
+  --skydash-success: #57B657;
+  --skydash-success-light: #eaf7ea;
+  --skydash-warning: #FFC100;
+  --skydash-warning-light: #fff9e6;
+  --skydash-danger: #FF4747;
+  --skydash-danger-light: #ffebeb;
+  --skydash-info: #248AFD;
+  --skydash-info-light: #e9f3ff;
+
+  /* Department MEP Colors */
+  --dept-hvac: #248AFD;
+  --dept-hvac-bg: #e9f3ff;
+  --dept-plumbing: #17a2b8;
+  --dept-plumbing-bg: #e5f7fa;
+  --dept-electrical: #f39c12;
+  --dept-electrical-bg: #fef5e7;
+  --dept-fire: #FF4747;
+  --dept-fire-bg: #ffebeb;
+
+  /* Surfaces & Neutral Tones */
+  --bg-app: #F5F7FF;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
+  --bg-header: #FFFFFF;
+  
+  --text-dark: #1F1F24;
+  --text-body: #6C7383;
+  --text-muted: #98A2B3;
+  --text-light: #B2B9C5;
+  
+  --border-light: #EBF0F5;
+  --border-subtle: #F2F4F8;
+
+  --sidebar-width: 255px;
+  --sidebar-collapsed-width: 72px;
+  --header-height: 66px;
+  --bottom-nav-height: 64px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  --shadow-subtle: 0px 4px 12px rgba(160, 175, 200, 0.08);
+  --shadow-card: 0px 5px 15px rgba(180, 190, 220, 0.12);
+  --shadow-hover: 0px 10px 25px rgba(150, 165, 210, 0.18);
+  --shadow-pill: 0px 3px 8px rgba(75, 73, 172, 0.28);
+  --shadow-bottom-nav: 0px -4px 16px rgba(0, 0, 0, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Manrope', 'Nunito', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  touch-action: manipulation;
+}
+
+/* App Wrapper Layout */
+.app-wrapper {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ==========================================================================
+   Skydash Left Sidebar Navigation
+   ========================================================================== */
+.app-sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1040;
+  transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s ease;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.02);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.app-sidebar.collapsed {
+  width: var(--sidebar-collapsed-width);
+}
+
+.sidebar-header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.brand-icon-box {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, var(--skydash-primary) 0%, #7978E9 100%);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 1.15rem;
+  box-shadow: 0 4px 10px rgba(75, 73, 172, 0.35);
+  flex-shrink: 0;
+}
+
+.brand-title-wrap {
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.2s ease;
+}
+
+.brand-title {
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: #1F1F24;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.brand-title span {
+  color: var(--skydash-primary);
+}
+
+.brand-subtitle {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-body);
+}
+
+.app-sidebar.collapsed .brand-title-wrap {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+/* Nav Menu */
+.sidebar-nav {
+  padding: 1.25rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex-grow: 1;
+}
+
+.nav-section-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #A7AFB7;
+  padding: 0.75rem 0.85rem 0.35rem 0.85rem;
+  white-space: nowrap;
+}
+
+.app-sidebar.collapsed .nav-section-title {
+  display: none;
+}
+
+.nav-item-link {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.72rem 1rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-body);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.nav-item-link:hover {
+  background: var(--skydash-primary-light);
+  color: var(--skydash-primary);
+}
+
+.nav-item-link.active {
+  background: var(--skydash-primary);
+  color: #FFFFFF;
+  box-shadow: var(--shadow-pill);
+}
+
+.nav-item-link i, .nav-item-link svg {
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text-dark);
+}
+
+.nav-item-link.active .nav-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+}
+
+.nav-badge.badge-ncr {
+  background: var(--skydash-danger);
+  color: #FFFFFF;
+}
+
+.app-sidebar.collapsed .nav-label,
+.app-sidebar.collapsed .nav-badge {
+  display: none;
+}
+
+.app-sidebar.collapsed .nav-item-link {
+  justify-content: center;
+  padding: 0.75rem 0;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.75rem;
+}
+
+.system-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-body);
+  font-weight: 600;
+}
+
+.status-pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--skydash-success);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(87, 182, 87, 0.2);
+}
+
+/* ==========================================================================
+   Skydash Main Content & Top Header
+   ========================================================================== */
+.app-main {
+  margin-left: var(--sidebar-width);
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--bg-app);
+  padding-bottom: 2rem;
+}
+
+.app-sidebar.collapsed ~ .app-main {
+  margin-left: var(--sidebar-collapsed-width);
+}
+
+/* Top Header Bar with Metrics */
+.app-header {
+  height: var(--header-height);
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sidebar-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-body);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--skydash-primary-light);
+  color: var(--skydash-primary);
+}
+
+.header-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.header-search-box input {
+  background: #F5F7FF;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  padding: 0.5rem 1rem 0.5rem 2.25rem;
+  font-size: 0.84rem;
+  width: 220px;
+  color: var(--text-dark);
+  transition: all 0.2s ease;
+}
+
+.header-search-box input:focus {
+  outline: none;
+  background: #FFFFFF;
+  border-color: var(--skydash-primary);
+  box-shadow: 0 0 0 3px rgba(75, 73, 172, 0.1);
+  width: 270px;
+}
+
+.header-search-box i {
+  position: absolute;
+  left: 0.85rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* User Metrics Strip */
+.header-metrics-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.metric-badge-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-subtle);
+  white-space: nowrap;
+}
+
+.metric-badge-item .metric-label {
+  font-weight: 600;
+  color: var(--text-body);
+  font-size: 0.72rem;
+}
+
+.metric-badge-item.badge-projects { border-left: 3px solid var(--skydash-primary); }
+.metric-badge-item.badge-pending { border-left: 3px solid var(--skydash-warning); }
+.metric-badge-item.badge-ncr { background: var(--skydash-danger-light); border-color: #ffd0d0; color: var(--skydash-danger); }
+.metric-badge-item.badge-cleared { background: var(--skydash-success-light); border-color: #c8ecc8; color: var(--skydash-success); }
+
+/* Right User Profile Dropdown */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-profile-widget {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.user-avatar-skydash {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--skydash-primary) 0%, #7978E9 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: 0 3px 8px rgba(75, 73, 172, 0.3);
+  flex-shrink: 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-fullname {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+}
+
+.user-engineering-role {
+  font-size: 0.72rem;
+  color: var(--text-body);
+}
+
+/* App Content */
+.app-content {
+  padding: 1.5rem;
+  flex-grow: 1;
+}
+
+/* ==========================================================================
+   Skydash Welcome Banner Card
+   ========================================================================== */
+.skydash-banner-card {
+  background: #FFFFFF;
+  border-radius: var(--radius-xl);
+  padding: 1.5rem 1.85rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.skydash-banner-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background: var(--skydash-primary);
+}
+
+.banner-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.banner-subtitle {
+  font-size: 0.84rem;
+  color: var(--text-body);
+  margin: 0.35rem 0 0 0;
+}
+
+/* ==========================================================================
+   Skydash KPI Cards Grid
+   ========================================================================== */
+.skydash-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.15rem;
+  margin-bottom: 1.5rem;
+}
+
+.skydash-kpi-card {
+  border-radius: var(--radius-lg);
+  padding: 1.35rem 1.25rem;
+  color: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 125px;
+}
+
+.skydash-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.skydash-kpi-card.card-dark-blue { background: linear-gradient(135deg, #4747A1 0%, #3a3a88 100%); }
+.skydash-kpi-card.card-blue { background: linear-gradient(135deg, #7978E9 0%, #4B49AC 100%); }
+.skydash-kpi-card.card-sky { background: linear-gradient(135deg, #7DA0FA 0%, #5884f7 100%); }
+.skydash-kpi-card.card-coral { background: linear-gradient(135deg, #F3797E 0%, #ee5c62 100%); }
+.skydash-kpi-card.card-amber { background: linear-gradient(135deg, #FFB64D 0%, #ffa524 100%); }
+.skydash-kpi-card.card-green { background: linear-gradient(135deg, #57B657 0%, #469e46 100%); }
+
+.kpi-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.95;
+}
+
+.kpi-icon-wrap {
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.kpi-main-number {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0.5rem 0 0.15rem 0;
+}
+
+.kpi-sub-desc {
+  font-size: 0.74rem;
+  opacity: 0.9;
+}
+
+/* ==========================================================================
+   Skydash Standard White Cards
+   ========================================================================== */
+.skydash-card {
+  background: #FFFFFF;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.skydash-card-header {
+  padding: 1.15rem 1.4rem;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.skydash-card-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.skydash-card-body {
+  padding: 1.4rem;
+}
+
+/* ==========================================================================
+   Badges & Department Pills
+   ========================================================================== */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.32rem 0.75rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.badge-status.badge-cleared { background-color: var(--skydash-success-light); color: var(--skydash-success); }
+.badge-status.badge-pending { background-color: var(--skydash-warning-light); color: #c98e00; }
+.badge-status.badge-ncr { background-color: var(--skydash-danger-light); color: var(--skydash-danger); }
+
+.badge-dept {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.dept-hvac { background-color: var(--dept-hvac-bg); color: var(--dept-hvac); }
+.dept-plumbing { background-color: var(--dept-plumbing-bg); color: var(--dept-plumbing); }
+.dept-electrical { background-color: var(--dept-electrical-bg); color: var(--dept-electrical); }
+.dept-firefighting { background-color: var(--dept-fire-bg); color: var(--dept-fire); }
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+.btn-skydash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.58rem 1.25rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.btn-skydash-primary {
+  background-color: var(--skydash-primary);
+  color: #FFFFFF;
+  box-shadow: 0 3px 8px rgba(75, 73, 172, 0.3);
+}
+
+.btn-skydash-primary:hover {
+  background-color: var(--skydash-primary-hover);
+  color: #FFFFFF;
+  box-shadow: 0 5px 12px rgba(75, 73, 172, 0.4);
+}
+
+.btn-skydash-outline {
+  background-color: #FFFFFF;
+  color: var(--text-dark);
+  border-color: var(--border-light);
+}
+
+.btn-skydash-outline:hover {
+  background-color: var(--skydash-primary-light);
+  color: var(--skydash-primary);
+  border-color: var(--skydash-primary);
+}
+
+.btn-skydash-danger { background-color: var(--skydash-danger); color: #FFFFFF; }
+.btn-skydash-success { background-color: var(--skydash-success); color: #FFFFFF; }
+
+.btn-skydash-sm {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.78rem;
+  border-radius: 6px;
+  min-height: 32px;
+}
+
+/* ==========================================================================
+   Tables
+   ========================================================================== */
+.skydash-table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.skydash-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.88rem;
+}
+
+.skydash-table th {
+  background-color: #FAFBFD;
+  color: #79788D;
+  font-weight: 700;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--border-light);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.skydash-table td {
+  padding: 0.95rem 1.15rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-dark);
+  vertical-align: middle;
+}
+
+.skydash-table tbody tr:hover {
+  background-color: #FAFBFD;
+}
+
+/* Progress */
+.skydash-progress {
+  height: 8px;
+  background-color: #EBF0F5;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.skydash-progress-fill {
+  height: 100%;
+  border-radius: 20px;
+  transition: width 0.5s ease;
+}
+
+/* Form inputs */
+.form-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 0.4rem;
+  display: block;
+}
+
+.form-control, .form-select {
+  width: 100%;
+  padding: 0.65rem 0.95rem;
+  font-size: 0.88rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background-color: #FFFFFF;
+  color: var(--text-dark);
+  transition: all 0.2s ease;
+  min-height: 42px;
+}
+
+.form-control:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--skydash-primary);
+  box-shadow: 0 0 0 3px rgba(75, 73, 172, 0.15);
+}
+
+/* ==========================================================================
+   Circle & Point Marking Canvas Tool (No Axis!)
+   ========================================================================== */
+.marker-viewport-container {
+  position: relative;
+  width: 100%;
+  background: #171822;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  user-select: none;
+}
+
+.marker-target-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  cursor: crosshair;
+}
+
+/* Visual Defect Circle Markers (No Axis Numbers) */
+.defect-circle-marker {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: #FFFFFF;
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 15;
+}
+
+.defect-circle-marker:hover,
+.defect-circle-marker:active {
+  transform: translate(-50%, -50%) scale(1.3);
+  z-index: 25;
+}
+
+/* Marker color variations */
+.defect-circle-marker.circle-red {
+  background: #FF4747;
+  box-shadow: 0 0 0 4px rgba(255, 71, 71, 0.35);
+  animation: circle-pulse 2s infinite;
+}
+
+.defect-circle-marker.circle-amber {
+  background: #FFB64D;
+  box-shadow: 0 0 0 4px rgba(255, 182, 77, 0.35);
+}
+
+.defect-circle-marker.circle-blue {
+  background: #248AFD;
+  box-shadow: 0 0 0 4px rgba(36, 138, 253, 0.35);
+}
+
+.defect-circle-marker.circle-green {
+  background: #57B657;
+  box-shadow: 0 0 0 4px rgba(87, 182, 87, 0.35);
+}
+
+@keyframes circle-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 71, 71, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(255, 71, 71, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 71, 71, 0); }
+}
+
+/* Marker Prompt Popover / Card */
+.marker-popover {
+  position: absolute;
+  background: #FFFFFF;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  padding: 1rem;
+  width: 280px;
+  z-index: 30;
+  border: 1px solid var(--border-light);
+  animation: popover-appear 0.18s ease;
+}
+
+@keyframes popover-appear {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ==========================================================================
+   Mobile & Tablet App-Like Bottom Navigation Bar
+   ========================================================================== */
+.app-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottom-nav-height);
+  background: #FFFFFF;
+  border-top: 1px solid var(--border-light);
+  box-shadow: var(--shadow-bottom-nav);
+  z-index: 1045;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 0.5rem;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--text-body);
+  font-size: 0.68rem;
+  font-weight: 700;
+  gap: 3px;
+  flex: 1;
+  padding: 0.4rem 0;
+  transition: all 0.2s ease;
+}
+
+.bottom-nav-item i {
+  font-size: 1.15rem;
+}
+
+.bottom-nav-item.active {
+  color: var(--skydash-primary);
+}
+
+/* Center Floating Action Button (FAB) on mobile */
+.bottom-nav-fab {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--skydash-primary) 0%, #7978E9 100%);
+  border-radius: 50%;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  box-shadow: 0 4px 12px rgba(75, 73, 172, 0.45);
+  margin-top: -20px;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.bottom-nav-fab:active {
+  transform: scale(0.92);
+}
+
+/* Modals & Alerts */
+.mep-modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(31, 31, 36, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1055;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.mep-modal-backdrop.show { display: flex; }
+
+.mep-modal {
+  background: #FFFFFF;
+  border-radius: var(--radius-xl);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-light);
+}
+
+.mep-alert {
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid transparent;
+}
+
+.mep-alert-success { background: var(--skydash-success-light); color: var(--skydash-success); border-color: #d2f0d2; }
+.mep-alert-danger { background: var(--skydash-danger-light); color: var(--skydash-danger); border-color: #ffd2d2; }
+.mep-alert-info { background: var(--skydash-info-light); color: var(--skydash-info); border-color: #d0e7ff; }
+.mep-alert-warning { background: var(--skydash-warning-light); color: #b8860b; border-color: #ffe699; }
+
+/* ==========================================================================
+   Responsive Breakpoints: Phone (< 768px) and Tablet (768px - 1024px)
+   ========================================================================== */
+@media (max-width: 992px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.2);
+  }
+  
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  
+  .app-main {
+    margin-left: 0 !important;
+    padding-bottom: calc(var(--bottom-nav-height) + 1.5rem);
+  }
+  
+  .app-bottom-nav {
+    display: flex;
+  }
+  
+  .header-metrics-strip {
+    display: none;
+  }
+  
+  .header-search-box input {
+    width: 160px;
+  }
+  
+  .header-search-box input:focus {
+    width: 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 1rem;
+  }
+  
+  .app-content {
+    padding: 1rem;
+  }
+  
+  .skydash-banner-card {
+    padding: 1.25rem 1.25rem;
+  }
+  
+  .banner-title {
+    font-size: 1.2rem;
+  }
+  
+  .skydash-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem;
+  }
+  
+  .skydash-kpi-card {
+    padding: 1rem;
+    min-height: 110px;
+  }
+  
+  .kpi-main-number {
+    font-size: 1.65rem;
+  }
+  
+  .kpi-title {
+    font-size: 0.72rem;
+  }
+  
+  .user-details {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .skydash-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .header-search-box {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Phase 3: Inspection Camera & Canvas Image Markup System
+   ========================================================================== */
+.canvas-markup-workspace {
+  position: relative;
+  background: #111827;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border-light);
+  user-select: none;
+  touch-action: none;
+}
+
+.canvas-toolbar {
+  background: #1F2937;
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #374151;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.canvas-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.btn-tool {
+  background: #374151;
+  color: #E5E7EB;
+  border: 1px solid #4B5563;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+
+.btn-tool:hover {
+  background: #4B5563;
+  color: #FFFFFF;
+}
+
+.btn-tool.active {
+  background: var(--skydash-danger);
+  color: #FFFFFF;
+  border-color: #EF4444;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+.canvas-container-relative {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0B0F19;
+  min-height: 380px;
+  overflow: hidden;
+}
+
+#markupCanvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* Draggable Text Badge Overlays */
+.draggable-badge {
+  position: absolute;
+  padding: 0.45rem 0.85rem;
+  background: rgba(17, 24, 39, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  color: #FFFFFF;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: grab;
+  touch-action: none;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  user-select: none;
+  transform: translate(-50%, -50%);
+}
+
+.draggable-badge:active {
+  cursor: grabbing;
+  box-shadow: 0 8px 20px rgba(75, 73, 172, 0.6);
+  border-color: var(--skydash-primary);
+  transform: translate(-50%, -50%) scale(1.05);
+}
+
+.draggable-badge .badge-icon {
+  font-size: 0.85rem;
+}
+
+.draggable-badge.badge-dept-tag { border-left: 3px solid var(--dept-hvac); }
+.draggable-badge.badge-floor-tag { border-left: 3px solid var(--skydash-primary); }
+.draggable-badge.badge-zone-tag { border-left: 3px solid var(--skydash-warning); }
+.draggable-badge.badge-desc-tag { border-left: 3px solid var(--skydash-danger); max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+.draggable-badge.badge-date-tag { border-left: 3px solid var(--skydash-success); }
+
+/* Draggable Badges Controls Panel */
+.badges-toggle-panel {
+  background: #FAFBFD;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.badge-toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  cursor: pointer;
+}
+
+/* Interactive Preview Modal Comparison */
+.preview-comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .preview-comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   Phase 5: Dynamic Floor & Room Milestone Tracking & Matrix Engine Styles
+   ========================================================================== */
+
+/* Matrix Milestone Status Badges */
+.badge-milestone-done {
+  background-color: #eaf7ea !important;
+  color: #278827 !important;
+  border: 1px solid #57B657 !important;
+}
+
+.badge-milestone-progress {
+  background-color: #fff9e6 !important;
+  color: #b8860b !important;
+  border: 1px solid #FFC100 !important;
+}
+
+.badge-milestone-pending {
+  background-color: #ffebeb !important;
+  color: #dc3545 !important;
+  border: 1px solid #FF4747 !important;
+}
+
+.badge-milestone-na {
+  background-color: #f1f3f5 !important;
+  color: #6c757d !important;
+  border: 1px solid #ced4da !important;
+}
+
+/* Interactive Status Dropdown inside Matrix Cells */
+.milestone-matrix-select {
+  font-size: 0.74rem;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 0.28rem 0.65rem;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+  max-width: 135px;
+  text-align: center;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%234747A1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 22px;
+}
+
+.milestone-matrix-select:focus {
+  box-shadow: 0 0 0 3px rgba(75, 73, 172, 0.2);
+}
+
+.milestone-matrix-select.saving-pulse {
+  animation: matrixCellPulse 0.6s ease;
+}
+
+@keyframes matrixCellPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); box-shadow: 0 0 10px rgba(75, 73, 172, 0.4); }
+  100% { transform: scale(1); }
+}
+
+/* Matrix Table Layout & Sticky Column */
+.matrix-grid-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-subtle);
+  overflow: hidden;
+}
+
+.matrix-grid-scroll-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 720px;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: separate;
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.82rem;
+}
+
+.matrix-table th {
+  background: #F8FAFD;
+  color: var(--text-dark);
+  font-weight: 800;
+  font-size: 0.78rem;
+  padding: 0.85rem 0.75rem;
+  border-bottom: 2px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.matrix-table th.matrix-room-header {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 20;
+  background: #F8FAFD;
+  min-width: 210px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.04);
+}
+
+.matrix-table td {
+  padding: 0.65rem 0.6rem;
+  border-bottom: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
+  vertical-align: middle;
+  background: #ffffff;
+}
+
+.matrix-table tr:hover td {
+  background-color: #FAFBFD;
+}
+
+.matrix-table td.matrix-room-cell {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: #ffffff;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.04);
+  font-weight: 700;
+}
+
+.matrix-table tr:hover td.matrix-room-cell {
+  background-color: #FAFBFD;
+}
+
+/* Category Column Tag Badges */
+.matrix-col-cat-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+  letter-spacing: 0.03em;
+}
+
+.cat-tag-general { background: #eceffe; color: var(--skydash-primary); }
+.cat-tag-hvac { background: var(--dept-hvac-bg); color: var(--dept-hvac); }
+.cat-tag-plumbing { background: var(--dept-plumbing-bg); color: var(--dept-plumbing); }
+.cat-tag-electrical { background: var(--dept-electrical-bg); color: var(--dept-electrical); }
+.cat-tag-firefighting { background: var(--dept-fire-bg); color: var(--dept-fire); }
+
+/* Matrix KPI Filter Header Bar */
+.matrix-controls-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  background: #FAFBFD;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.matrix-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.matrix-kpi-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+}
+
+/* Toast container for matrix status updates */
+.matrix-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #1F1F24;
+  color: #FFFFFF;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  z-index: 9999;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.matrix-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.matrix-toast.toast-success {
+  border-left: 4px solid var(--skydash-success);
+}
+
+.matrix-toast.toast-error {
+  border-left: 4px solid var(--skydash-danger);
+}
+
+

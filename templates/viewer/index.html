@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEP Studio — Interactive Engineering Drawing Viewer</title>
+  <meta name="description" content="Professional MEP drawing viewer with 2D/3D rendering, component detection, and interactive inspection for HVAC, plumbing, fire protection, and electrical systems.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5.3 CSS & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Custom MEP Studio CSS -->
+  <link rel="stylesheet" href="/static/css/viewer.css">
+</head>
+<body>
+
+  {% if active_drawing %}
+  <div id="active-drawing-meta" data-id="{{ active_drawing.id }}" style="display: none;"></div>
+  {% endif %}
+
+  <div class="cad-app-shell">
+    <!-- ═══ Top Header & Toolbar ═══ -->
+    <header class="cad-header">
+      <!-- Left: Logo & File Title -->
+      <div class="d-flex align-items-center gap-2">
+        <div class="cad-brand">
+          <div class="cad-brand-icon"><i class="bi bi-compass"></i></div>
+          <span>MEP<span class="text-info">Studio</span></span>
+        </div>
+        <div class="d-flex align-items-center gap-2 border-start border-secondary ps-2">
+          <span class="fw-semibold text-light small text-truncate" style="max-width:220px;" id="drawing-title-display">
+            {{ active_drawing.title|default:"No Drawing Loaded" }}
+          </span>
+          <span class="cad-title-badge" id="drawing-type-badge">
+            {{ active_drawing.file_type|upper|default:"—" }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Center: View Mode & Tools -->
+      <div class="d-flex align-items-center gap-2">
+        <!-- 2D / 3D / Split Mode Switch -->
+        <div class="view-mode-pill">
+          <button id="btn-mode-2d" class="active" title="2D Plan View">
+            <i class="bi bi-aspect-ratio"></i> 2D
+          </button>
+          <button id="btn-mode-3d" title="3D MEP Model">
+            <i class="bi bi-box"></i> 3D
+          </button>
+          <button id="btn-mode-split" title="Split 2D + 3D Side-by-Side">
+            <i class="bi bi-layout-split"></i> Split
+          </button>
+        </div>
+
+        <!-- Tool Selection -->
+        <div class="cad-toolbar-group border-start border-secondary ps-2 hide-mobile">
+          <button class="cad-tool-btn active" data-tool="pan" title="Pan (Drag)">
+            <i class="bi bi-arrows-move"></i>
+          </button>
+          <button class="cad-tool-btn" data-tool="select" title="Select Component">
+            <i class="bi bi-cursor"></i>
+          </button>
+          <button class="cad-tool-btn" data-tool="distance" title="Measure Distance">
+            <i class="bi bi-rulers"></i>
+          </button>
+          <button class="cad-tool-btn" data-tool="calibrate" title="Calibrate Scale">
+            <i class="bi bi-gear"></i> Scale
+          </button>
+          <button class="cad-tool-btn" data-tool="manual_tag" title="Tag Region">
+            <i class="bi bi-tag"></i>
+          </button>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="cad-toolbar-group border-start border-secondary ps-2">
+          <button class="cad-tool-btn" id="btn-zoom-out" title="Zoom Out">
+            <i class="bi bi-zoom-out"></i>
+          </button>
+          <button class="cad-tool-btn" id="btn-zoom-in" title="Zoom In">
+            <i class="bi bi-zoom-in"></i>
+          </button>
+          <button class="cad-tool-btn" id="btn-fit-screen" title="Fit to Screen">
+            <i class="bi bi-arrows-fullscreen"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Upload & Samples -->
+      <div class="d-flex align-items-center gap-2">
+        <div class="dropdown">
+          <button class="cad-tool-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-collection"></i> <span class="d-none d-lg-inline">Samples</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
+            <li><h6 class="dropdown-header text-info">AutoCAD DXF</h6></li>
+            <li><a class="dropdown-item" href="/api/sample/hvac_dxf/"><i class="bi bi-wind text-info me-2"></i>HVAC Ductwork (DXF)</a></li>
+            <li><a class="dropdown-item" href="/api/sample/plumbing_dxf/"><i class="bi bi-droplet-fill text-primary me-2"></i>CHW & Sprinkler (DXF)</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><h6 class="dropdown-header text-danger">Vector PDF</h6></li>
+            <li><a class="dropdown-item" href="/api/sample/hvac_pdf/"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>HVAC Schedules (PDF)</a></li>
+            <li><a class="dropdown-item" href="/api/sample/plumbing_pdf/"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Plumbing & Fire (PDF)</a></li>
+          </ul>
+        </div>
+
+        <button class="cad-tool-btn btn-primary-glow" data-bs-toggle="modal" data-bs-target="#uploadModal">
+          <i class="bi bi-cloud-arrow-up-fill"></i> <span class="d-none d-md-inline">Upload</span>
+        </button>
+        <button class="cad-tool-btn" id="btn-fullscreen" title="Fullscreen">
+          <i class="bi bi-fullscreen"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ═══ Main Workspace Body ═══ -->
+    <div class="cad-main-body">
+      <!-- Left Sidebar -->
+      <aside class="cad-sidebar-left">
+        <div class="cad-sidebar-tabs">
+          <div class="cad-sidebar-tab active" data-tab="tab-components">
+            <i class="bi bi-cpu"></i><span>Components</span>
+          </div>
+          <div class="cad-sidebar-tab" data-tab="tab-layers">
+            <i class="bi bi-layers"></i><span>Layers</span>
+          </div>
+          <div class="cad-sidebar-tab" data-tab="tab-sheets">
+            <i class="bi bi-files"></i><span>Sheets</span>
+          </div>
+          <div class="cad-sidebar-tab" data-tab="tab-legends">
+            <i class="bi bi-info-circle"></i><span>Info</span>
+          </div>
+        </div>
+
+        <!-- Tab: Components -->
+        <div class="cad-tab-pane active" id="tab-components">
+          <div class="mb-2">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control bg-dark border-secondary text-light" id="comp-search-input" placeholder="Search VCD, FD, Duct...">
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            <button class="btn btn-sm btn-outline-info active filter-discipline-btn py-0 px-2" style="font-size:0.68rem;" data-discipline="All">All</button>
+            <button class="btn btn-sm btn-outline-info filter-discipline-btn py-0 px-2" style="font-size:0.68rem;" data-discipline="HVAC">HVAC</button>
+            <button class="btn btn-sm btn-outline-primary filter-discipline-btn py-0 px-2" style="font-size:0.68rem;" data-discipline="Plumbing">Plumb</button>
+            <button class="btn btn-sm btn-outline-danger filter-discipline-btn py-0 px-2" style="font-size:0.68rem;" data-discipline="Fire Protection">Fire</button>
+            <button class="btn btn-sm btn-outline-warning filter-discipline-btn py-0 px-2" style="font-size:0.68rem;" data-discipline="Electrical">Elec</button>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-1 px-1">
+            <span class="text-muted" style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.5px;">Click to select</span>
+            <span class="badge bg-secondary" id="components-count-badge" style="font-size:0.68rem;">0</span>
+          </div>
+          <div class="flex-grow-1 overflow-y-auto pe-1" id="components-list-container"></div>
+        </div>
+
+        <!-- Tab: Layers -->
+        <div class="cad-tab-pane" id="tab-layers">
+          <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+            <span class="text-muted small fw-bold text-uppercase">CAD Layers</span>
+            <span class="text-muted" style="font-size:0.68rem;">Toggle</span>
+          </div>
+          <div class="flex-grow-1 overflow-y-auto" id="layers-list-container"></div>
+        </div>
+
+        <!-- Tab: Sheets -->
+        <div class="cad-tab-pane" id="tab-sheets">
+          <div class="text-muted small fw-bold text-uppercase mb-2">Drawing Sheets</div>
+          <div class="flex-grow-1 overflow-y-auto" id="sheet-list-container"></div>
+        </div>
+
+        <!-- Tab: Legend / Info -->
+        <div class="cad-tab-pane" id="tab-legends">
+          <div class="text-muted small fw-bold text-uppercase mb-2">Drawing Intelligence</div>
+          <div class="inspector-card mb-3">
+            <div class="inspector-card-title"><i class="bi bi-aspect-ratio"></i> Scale & Calibration</div>
+            <div class="inspector-row">
+              <span class="inspector-label">Drawing Scale</span>
+              <span class="inspector-value text-info" id="legend-scale-display">1:100</span>
+            </div>
+            <div class="inspector-row">
+              <span class="inspector-label">Units</span>
+              <span class="inspector-value">mm</span>
+            </div>
+            <div class="mt-2">
+              <button class="btn btn-sm btn-outline-info w-100" data-tool="calibrate" onclick="document.querySelector('[data-tool=calibrate]').click()">
+                <i class="bi bi-rulers"></i> Calibrate Known Distance
+              </button>
+            </div>
+          </div>
+          <div class="text-muted small fw-bold text-uppercase mb-2">Discipline Symbols</div>
+          <div class="flex-grow-1 overflow-y-auto" id="legends-list-container"></div>
+        </div>
+      </aside>
+
+      <!-- ═══ Center Canvas Workspace ═══ -->
+      <main class="cad-workspace" id="cad-workspace">
+        <!-- 2D Viewport -->
+        <div id="viewport-2d">
+          <div id="drawing-stage">
+            <canvas id="cad-canvas"></canvas>
+            <div id="pdf-container"></div>
+            <svg id="overlay-svg"></svg>
+          </div>
+        </div>
+
+        <!-- 3D Viewport (Three.js) -->
+        <div id="viewport-3d">
+          <canvas id="three-canvas"></canvas>
+          <div class="cad-3d-floating-controls">
+            <button class="cad-tool-btn" data-3d-cam="iso_ne" title="Isometric NE"><i class="bi bi-box"></i> Iso</button>
+            <button class="cad-tool-btn" data-3d-cam="top" title="Top Plan"><i class="bi bi-square"></i> Top</button>
+            <button class="cad-tool-btn" data-3d-cam="front" title="Front"><i class="bi bi-distribute-vertical"></i> Front</button>
+            <button class="cad-tool-btn" data-3d-cam="side" title="Side"><i class="bi bi-distribute-horizontal"></i> Side</button>
+            <div class="vr bg-secondary mx-1"></div>
+            <button class="cad-tool-btn active" data-3d-filter="All">All</button>
+            <button class="cad-tool-btn" data-3d-filter="HVAC">HVAC</button>
+            <button class="cad-tool-btn" data-3d-filter="Fire Protection">Fire</button>
+            <button class="cad-tool-btn" data-3d-filter="Electrical">Elec</button>
+          </div>
+          <div class="cad-3d-disclaimer-banner">
+            <i class="bi bi-exclamation-triangle-fill text-warning flex-shrink-0"></i>
+            <span id="disclaimer-3d-text">3D view is an estimated spatial representation from 2D drawing annotations.</span>
+          </div>
+        </div>
+
+        <!-- 2D/3D labels in split mode -->
+        <div class="split-label" id="split-label-2d" style="display:none;left:25%;">2D PLAN</div>
+        <div class="split-label" id="split-label-3d" style="display:none;left:75%;">3D MODEL</div>
+      </main>
+
+      <!-- ═══ Right Sidebar: Component Inspector ═══ -->
+      <aside class="cad-sidebar-right">
+        <div class="inspector-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-cpu text-info"></i>
+            <span class="fw-bold text-light small text-uppercase">Inspector</span>
+          </div>
+          <span class="badge bg-info" id="insp-discipline-badge">—</span>
+        </div>
+
+        <div class="inspector-content" id="inspector-content">
+          <!-- Default empty state -->
+          <div class="empty-state" id="inspector-empty">
+            <i class="bi bi-cursor-fill"></i>
+            <div class="fw-semibold">No Component Selected</div>
+            <div style="font-size:0.78rem;">Click a component on the drawing or the sidebar list to inspect its specifications.</div>
+          </div>
+
+          <!-- Filled inspector (hidden initially) -->
+          <div id="inspector-filled" style="display:none;">
+            <!-- Identity Card -->
+            <div class="inspector-card fade-in">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="fw-bold text-light mb-0" id="insp-tag">—</h5>
+                <span class="badge bg-dark border border-secondary text-info" id="insp-discipline">—</span>
+              </div>
+              <div class="text-light small fw-semibold" id="insp-name">—</div>
+              <div class="text-muted" style="font-size:0.75rem;" id="insp-type">—</div>
+            </div>
+
+            <!-- Dimensions -->
+            <div class="inspector-card fade-in">
+              <div class="inspector-card-title"><i class="bi bi-bounding-box-circles"></i> Dimensions & Location</div>
+              <div class="inspector-row">
+                <span class="inspector-label">Size</span>
+                <span class="inspector-value" id="insp-dimensions">—</span>
+              </div>
+              <div class="inspector-row">
+                <span class="inspector-label">Material</span>
+                <span class="inspector-value" id="insp-material">—</span>
+              </div>
+              <div class="inspector-row">
+                <span class="inspector-label">Position</span>
+                <span class="inspector-value text-muted" id="insp-location" style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;">—</span>
+              </div>
+            </div>
+
+            <!-- Technical Specs -->
+            <div class="inspector-card fade-in">
+              <div class="inspector-card-title"><i class="bi bi-speedometer2"></i> Technical Specifications</div>
+              <div id="insp-specs-container"></div>
+            </div>
+
+            <!-- Source Evidence -->
+            <div class="inspector-card fade-in">
+              <div class="inspector-card-title"><i class="bi bi-file-earmark-check"></i> Drawing Source</div>
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge-verified" id="insp-confidence-badge">Verified</span>
+                <span class="text-muted" style="font-size:0.7rem;" id="insp-source-type">—</span>
+              </div>
+              <div class="inspector-evidence-box" id="insp-evidence">—</div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-info flex-grow-1" id="btn-focus-2d">
+                <i class="bi bi-crosshair"></i> Focus 2D
+              </button>
+              <button class="btn btn-sm btn-outline-light flex-grow-1" id="btn-view-3d">
+                <i class="bi bi-box"></i> View 3D
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ═══ Bottom Status Bar ═══ -->
+    <footer class="cad-status-bar">
+      <div class="status-item">
+        <i class="bi bi-crosshair text-info"></i>
+        <span id="status-coordinates">X: 0   Y: 0</span>
+      </div>
+      <div class="status-item">
+        <i class="bi bi-rulers text-warning"></i>
+        <span id="status-scale-unit">mm</span>
+      </div>
+      <div class="status-item">
+        <i class="bi bi-file-earmark text-primary"></i>
+        <span id="status-active-sheet">Sheet 1</span>
+      </div>
+      <div class="status-item">
+        <i class="bi bi-zoom-in text-info"></i>
+        <span id="status-zoom">100%</span>
+      </div>
+      <div class="status-item">
+        <span class="badge bg-dark border border-secondary text-info" id="status-ready-badge">Ready</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ═══ Modal: Upload ═══ -->
+  <div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-light">
+            <i class="bi bi-cloud-arrow-up text-info me-2"></i>Upload MEP Drawing
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="upload-modal-form" enctype="multipart/form-data">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label text-light small fw-semibold">Drawing File</label>
+              <input class="form-control bg-dark border-secondary text-light" type="file" id="upload-file-input" accept=".pdf,.dxf,.dwg" required>
+              <div class="form-text text-muted">PDF, DXF, DWG — Max 50 MB</div>
+            </div>
+            <div id="upload-progress-container" class="mb-3" style="display:none;">
+              <label class="form-label text-light small">Processing…</label>
+              <div class="progress bg-dark border border-secondary" style="height:8px;">
+                <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-info text-dark fw-bold">Upload & Process</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Modal: DWG Notice ═══ -->
+  <div class="modal fade" id="dwgNoticeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header border-warning">
+          <h5 class="modal-title fw-bold text-warning">
+            <i class="bi bi-exclamation-diamond-fill me-2"></i>DWG Conversion Required
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning bg-dark border-warning p-3">
+            <div class="fw-bold mb-1">Format: <span id="dwg-version-detected" class="text-light">AutoCAD DWG</span></div>
+            <div id="dwg-error-desc" class="small text-muted">Proprietary binary format.</div>
+          </div>
+          <h6 class="fw-bold text-light mb-2">How to convert:</h6>
+          <ol class="small text-muted mb-3" id="dwg-suggestions-list"></ol>
+          <div class="d-flex gap-2">
+            <a href="/api/sample/hvac_dxf/" class="btn btn-sm btn-outline-info">Sample DXF</a>
+            <a href="/api/sample/hvac_pdf/" class="btn btn-sm btn-outline-danger">Sample PDF</a>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Modal: Calibration ═══ -->
+  <div class="modal fade" id="calibrationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-light"><i class="bi bi-gear text-info me-2"></i>Calibrate Scale</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="calibration-form">
+          <div class="modal-body">
+            <p class="text-muted small">
+              Measured: <strong class="text-info" id="calib-measured-units">0</strong> drawing units.
+            </p>
+            <div class="mb-3">
+              <label class="form-label text-light small fw-semibold">Known Real Distance</label>
+              <div class="input-group">
+                <input type="number" step="any" class="form-control bg-dark border-secondary text-light" id="calib-known-dim" placeholder="e.g. 5000" required>
+                <select class="form-select bg-dark border-secondary text-light" id="calib-unit-select" style="max-width:80px;">
+                  <option value="mm" selected>mm</option>
+                  <option value="m">m</option>
+                  <option value="in">in</option>
+                  <option value="ft">ft</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-info text-dark fw-bold">Apply</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Modal: Manual Tag ═══ -->
+  <div class="modal fade" id="manualTagModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold text-light"><i class="bi bi-tag text-info me-2"></i>Tag Component</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="manual-tag-form">
+          <div class="modal-body">
+            <div class="mb-2">
+              <label class="form-label text-light small fw-semibold">Tag</label>
+              <input type="text" class="form-control bg-dark border-secondary text-light" id="manual-comp-tag" placeholder="e.g. VCD-15" required>
+            </div>
+            <div class="mb-2">
+              <label class="form-label text-light small fw-semibold">Type</label>
+              <input type="text" class="form-control bg-dark border-secondary text-light" id="manual-comp-name" placeholder="e.g. Volume Control Damper" required>
+            </div>
+            <div class="mb-2">
+              <label class="form-label text-light small fw-semibold">Discipline</label>
+              <select class="form-select bg-dark border-secondary text-light" id="manual-comp-disc">
+                <option value="HVAC">HVAC</option>
+                <option value="Plumbing">Plumbing</option>
+                <option value="Fire Protection">Fire Protection</option>
+                <option value="Electrical">Electrical</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label text-light small fw-semibold">Dimensions</label>
+              <input type="text" class="form-control bg-dark border-secondary text-light" id="manual-comp-dims" placeholder="e.g. 600 x 300 mm">
+            </div>
+            <div class="mb-2">
+              <label class="form-label text-light small fw-semibold">Material</label>
+              <input type="text" class="form-control bg-dark border-secondary text-light" id="manual-comp-mat" placeholder="e.g. Galvanized Steel">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-info text-dark fw-bold">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Scripts ═══ -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script src="/static/js/pdf_viewer_engine.js"></script>
+  <script src="/static/js/cad_viewer_2d.js"></script>
+  <script src="/static/js/cad_viewer_3d.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+{% extends 'qaqc/base.html' %}
+
+{% block title %}Dashboard &bull; Skydash MEP QA/QC{% endblock %}
+{% block page_heading %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<!-- Skydash Signature Welcome Banner Card -->
+<div class="skydash-banner-card">
+  <div>
+    <h1 class="banner-title">
+      Welcome Back, {{ user.first_name|default:user.username }}!
+    </h1>
+    <p class="banner-subtitle">
+      MEP QA/QC Control Center &bull; Tracking Mechanical, Electrical, Plumbing & Fire Protection snags.
+    </p>
+  </div>
+  <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+    <button type="button" class="btn-skydash btn-skydash-outline" onclick="openModal('createProjectModal')">
+      <i class="fa-solid fa-plus"></i> New Project
+    </button>
+    <a href="{% url 'inspection_create' %}" class="btn-skydash btn-skydash-primary">
+      <i class="fa-solid fa-triangle-exclamation"></i> Log Inspection
+    </a>
+  </div>
+</div>
+
+<!-- Skydash Signature Colorful KPI Cards Grid -->
+<div class="skydash-kpi-grid">
+  <!-- Card 1: Active Projects (Dark Indigo) -->
+  <div class="skydash-kpi-card card-dark-blue">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Active Projects</span>
+      <div class="kpi-icon-wrap"><i class="fa-solid fa-city"></i></div>
+    </div>
+    <div class="kpi-main-number">{{ metrics.total_projects }}</div>
+    <div class="kpi-sub-desc">Monitored MEP job sites</div>
+  </div>
+
+  <!-- Card 2: Total Inspections (Skydash Blue/Purple) -->
+  <div class="skydash-kpi-card card-blue">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Inspections</span>
+      <div class="kpi-icon-wrap"><i class="fa-solid fa-clipboard-check"></i></div>
+    </div>
+    <div class="kpi-main-number">{{ metrics.total_inspections }}</div>
+    <div class="kpi-sub-desc">Total site snags recorded</div>
+  </div>
+
+  <!-- Card 3: Pending Clearance (Golden Amber) -->
+  <div class="skydash-kpi-card card-amber">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Pending</span>
+      <div class="kpi-icon-wrap"><i class="fa-solid fa-clock"></i></div>
+    </div>
+    <div class="kpi-main-number">{{ metrics.pending_clearance }}</div>
+    <div class="kpi-sub-desc">Awaiting contractor rework</div>
+  </div>
+
+  <!-- Card 4: Given Clearance (Mint Green) -->
+  <div class="skydash-kpi-card card-green">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Cleared</span>
+      <div class="kpi-icon-wrap"><i class="fa-solid fa-circle-check"></i></div>
+    </div>
+    <div class="kpi-main-number">{{ metrics.given_clearance }}</div>
+    <div class="kpi-sub-desc">Pass rate: {{ metrics.clearance_rate }}%</div>
+  </div>
+
+  <!-- Card 5: Open NCRs (Coral Red) -->
+  <div class="skydash-kpi-card card-coral">
+    <div class="kpi-top-row">
+      <span class="kpi-title">Open NCRs</span>
+      <div class="kpi-icon-wrap"><i class="fa-solid fa-triangle-exclamation"></i></div>
+    </div>
+    <div class="kpi-main-number">{{ metrics.open_ncrs }}</div>
+    <div class="kpi-sub-desc">Critical non-conformance</div>
+  </div>
+</div>
+
+<!-- Main Row: Department Progress & Critical NCRs -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.75rem;">
+  <!-- Department Analytics -->
+  <div class="skydash-card" style="margin-bottom: 0;">
+    <div class="skydash-card-header">
+      <h3 class="skydash-card-title">
+        <i class="fa-solid fa-chart-pie" style="color: var(--skydash-primary);"></i>
+        <span>Department Defect Distribution</span>
+      </h3>
+      <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-body);">
+        All Active Trades
+      </span>
+    </div>
+    <div class="skydash-card-body">
+      {% for dept in dept_stats %}
+      <div style="margin-bottom: 1.2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; font-size: 0.85rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="badge-dept dept-{{ dept.name|lower }}">{{ dept.name }}</span>
+            <span style="font-size: 0.78rem; color: var(--text-body);">
+              {{ dept.count }} items &bull; 
+              <strong style="color: var(--skydash-danger);">{{ dept.ncr_count }} NCR</strong>
+            </span>
+          </div>
+          <strong style="color: var(--text-dark);">{{ dept.percentage }}%</strong>
+        </div>
+        <div class="skydash-progress">
+          <div class="skydash-progress-fill" style="width: {{ dept.percentage }}%; 
+            {% if dept.name == 'HVAC' %}background-color: var(--dept-hvac);
+            {% elif dept.name == 'Plumbing' %}background-color: var(--dept-plumbing);
+            {% elif dept.name == 'Electrical' %}background-color: var(--dept-electrical);
+            {% else %}background-color: var(--dept-fire);{% endif %}">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Critical Non-Conformance Watchlist -->
+  <div class="skydash-card" style="margin-bottom: 0;">
+    <div class="skydash-card-header">
+      <h3 class="skydash-card-title">
+        <i class="fa-solid fa-triangle-exclamation" style="color: var(--skydash-danger);"></i>
+        <span>Critical NCR Watchlist</span>
+      </h3>
+      <span class="badge-status badge-ncr">{{ metrics.open_ncrs }} Active NCRs</span>
+    </div>
+    <div class="skydash-card-body" style="padding: 0;">
+      {% if critical_ncrs %}
+      <div class="skydash-table-responsive">
+        <table class="skydash-table">
+          <thead>
+            <tr>
+              <th>Trade</th>
+              <th>Site & Level</th>
+              <th>Defect Description</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ncr in critical_ncrs %}
+            <tr>
+              <td>
+                <span class="badge-dept dept-{{ ncr.department|lower }}">{{ ncr.department }}</span>
+              </td>
+              <td>
+                <div style="font-weight: 700; color: var(--text-dark);">{{ ncr.project.name }}</div>
+                <div style="font-size: 0.76rem; color: var(--text-body);">Fl. {{ ncr.floor_number }}{% if ncr.apartment_number %} &bull; {{ ncr.apartment_number }}{% endif %}</div>
+              </td>
+              <td>
+                <div style="max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.82rem; color: var(--text-body);" title="{{ ncr.faults_description }}">
+                  {{ ncr.faults_description }}
+                </div>
+              </td>
+              <td>
+                <a href="{% url 'inspection_detail' ncr.id %}" class="btn-skydash btn-skydash-outline btn-skydash-sm">
+                  Inspect
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div style="padding: 2.5rem; text-align: center; color: var(--text-body);">
+        <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: var(--skydash-success); margin-bottom: 0.5rem; display: block;"></i>
+        <div style="font-weight: 700; color: var(--text-dark);">Zero Active NCRs</div>
+        <div style="font-size: 0.8rem;">All current inspections conform to engineering standards.</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Recent Defect Inspections Table -->
+<div class="skydash-card">
+  <div class="skydash-card-header">
+    <h3 class="skydash-card-title">
+      <i class="fa-solid fa-list-check" style="color: var(--skydash-primary);"></i>
+      <span>Recent Defect Inspections</span>
+    </h3>
+    <div style="display: flex; gap: 0.5rem;">
+      <a href="{% url 'inspections_list' %}" class="btn-skydash btn-skydash-outline btn-skydash-sm">
+        View All Registry ({{ metrics.total_inspections }})
+      </a>
+      <a href="{% url 'inspection_create' %}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+        <i class="fa-solid fa-plus"></i> New Defect
+      </a>
+    </div>
+  </div>
+  <div class="skydash-card-body" style="padding: 0;">
+    {% if recent_inspections %}
+    <div class="skydash-table-responsive">
+      <table class="skydash-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Discipline</th>
+            <th>Project Site</th>
+            <th>Floor / Zone</th>
+            <th>Fault / Snag Description</th>
+            <th>Clearance Status</th>
+            <th>Date Logged</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in recent_inspections %}
+          <tr>
+            <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; font-weight: 700; color: var(--text-body);">
+              #{{ item.id }}
+            </td>
+            <td>
+              <span class="badge-dept dept-{{ item.department|lower }}">
+                {% if item.department == 'HVAC' %}<i class="fa-solid fa-fan"></i>
+                {% elif item.department == 'Plumbing' %}<i class="fa-solid fa-faucet-drip"></i>
+                {% elif item.department == 'Electrical' %}<i class="fa-solid fa-bolt"></i>
+                {% else %}<i class="fa-solid fa-fire-extinguisher"></i>{% endif %}
+                {{ item.department }}
+              </span>
+            </td>
+            <td>
+              <div style="font-weight: 700; color: var(--text-dark);">{{ item.project.name }}</div>
+              <div style="font-size: 0.74rem; color: var(--text-body);">PM: {{ item.project.pm_name }}</div>
+            </td>
+            <td>
+              <strong style="color: var(--text-dark);">Level {{ item.floor_number }}</strong>
+              {% if item.apartment_number %}
+              <div style="font-size: 0.74rem; color: var(--text-body);">{{ item.apartment_number }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <div style="max-width: 320px; font-size: 0.82rem; line-height: 1.4; color: var(--text-body);">
+                {{ item.faults_description|truncatewords:16 }}
+              </div>
+              {% if item.overlay_positions %}
+              <div style="margin-top: 0.25rem;">
+                <span style="font-size: 0.72rem; color: var(--skydash-primary); font-weight: 700;">
+                  <i class="fa-solid fa-location-dot"></i> {{ item.overlay_count }} CAD/Photo Pins
+                </span>
+              </div>
+              {% endif %}
+            </td>
+            <td>
+              <span id="status-badge-{{ item.id }}" class="badge-status {{ item.status_badge_class }}">
+                {{ item.status }}
+              </span>
+            </td>
+            <td style="font-size: 0.78rem; color: var(--text-body); white-space: nowrap;">
+              {{ item.date_recorded|date:"M d, Y" }}
+            </td>
+            <td>
+              <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-outline btn-skydash-sm" title="View Inspection Details">
+                <i class="fa-solid fa-eye"></i> Details
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="padding: 3rem 1.5rem; text-align: center;">
+      <i class="fa-solid fa-clipboard-question" style="font-size: 2.5rem; color: #b2b9c5; margin-bottom: 0.75rem; display: block;"></i>
+      <h4 style="margin: 0; color: var(--text-dark); font-weight: 800;">No Defect Inspections Recorded Yet</h4>
+      <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.5rem 0 1.25rem 0;">Get started by loading sample data or logging your first MEP inspection.</p>
+      <div style="display: flex; gap: 0.75rem; justify-content: center;">
+        <a href="{% url 'seed_demo_data' %}" class="btn-skydash btn-skydash-outline">
+          <i class="fa-solid fa-database"></i> Reload Sample Data
+        </a>
+        <a href="{% url 'inspection_create' %}" class="btn-skydash btn-skydash-primary">
+          <i class="fa-solid fa-plus"></i> Record Inspection
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal: Create New Project -->
+<div class="mep-modal-backdrop" id="createProjectModal">
+  <div class="mep-modal">
+    <div class="skydash-card-header">
+      <h3 class="skydash-card-title">
+        <i class="fa-solid fa-building" style="color: var(--skydash-primary);"></i>
+        <span>Initialize New MEP Project Site</span>
+      </h3>
+      <button type="button" onclick="closeModal('createProjectModal')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+    <form method="post" action="{% url 'projects_list' %}">
+      {% csrf_token %}
+      <div class="skydash-card-body">
+        <div class="form-group" style="margin-bottom: 1.1rem;">
+          <label class="form-label">Project Name / Site Code</label>
+          <input type="text" name="name" class="form-control" placeholder="e.g. Marina Horizon Tower B" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.1rem;">
+          <div class="form-group">
+            <label class="form-label">Project Manager (PM) Name</label>
+            <input type="text" name="pm_name" class="form-control" placeholder="e.g. Eng. Tariq Mansoor" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total Floors / Levels</label>
+            <input type="number" name="total_floors" class="form-control" value="20" min="1" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.1rem;">
+          <div class="form-group">
+            <label class="form-label">Mechanical Lead Engineer</label>
+            <input type="text" name="mechanical_lead" class="form-control" placeholder="e.g. Eng. David Miller" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Electrical Lead Engineer</label>
+            <input type="text" name="electrical_lead" class="form-control" placeholder="e.g. Eng. Sarah Jenkins" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.1rem;">
+          <label class="form-label">HVAC Lead Engineer</label>
+          <input type="text" name="hvac_lead" class="form-control" placeholder="e.g. Eng. Ahmed Zaki" required>
+        </div>
+      </div>
+      <div style="padding: 1.1rem 1.6rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.65rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('createProjectModal')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary">Save Project</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

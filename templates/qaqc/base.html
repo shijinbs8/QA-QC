@@ -1,0 +1,193 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#4B49AC">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  
+  <title>{% block title %}{{ page_title|default:"MEP QA/QC Dashboard" }}{% endblock %} &bull; Skydash MEP QA/QC</title>
+  
+  <!-- Modern Clean Font: Manrope & Inter (Skydash Style) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Skydash Admin & Mobile App Theme Stylesheet -->
+  <link rel="stylesheet" href="{% static 'css/qaqc-admin.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Skydash Collapsible Left Sidebar (Desktop & Mobile Slide-out Drawer) -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-header">
+        <a href="{% url 'dashboard' %}" class="brand-logo">
+          <div class="brand-icon-box">
+            <i class="fa-solid fa-shapes"></i>
+          </div>
+          <div class="brand-title-wrap">
+            <span class="brand-title">Sky<span>dash</span></span>
+            <span class="brand-subtitle">MEP QA/QC Admin</span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Navigation</div>
+        
+        <a href="{% url 'dashboard' %}" class="nav-item-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+          <i class="fa-solid fa-table-columns"></i>
+          <span class="nav-label">Dashboard</span>
+        </a>
+
+        <a href="{% url 'projects_list' %}" class="nav-item-link {% if 'projects' in request.resolver_match.url_name %}active{% endif %}">
+          <i class="fa-solid fa-building"></i>
+          <span class="nav-label">Projects</span>
+          {% if metrics.total_projects %}
+          <span class="nav-badge">{{ metrics.total_projects }}</span>
+          {% endif %}
+        </a>
+
+        <a href="{% url 'inspections_list' %}" class="nav-item-link {% if 'inspections' in request.resolver_match.url_name and request.resolver_match.url_name != 'inspection_create' %}active{% endif %}">
+          <i class="fa-solid fa-clipboard-check"></i>
+          <span class="nav-label">Defect Inspections</span>
+          {% if metrics.open_ncrs %}
+          <span class="nav-badge badge-ncr">{{ metrics.open_ncrs }} NCR</span>
+          {% endif %}
+        </a>
+
+        <a href="{% url 'inspection_create' %}" class="nav-item-link {% if request.resolver_match.url_name == 'inspection_create' %}active{% endif %}">
+          <i class="fa-solid fa-circle-plus"></i>
+          <span class="nav-label">Log Defect</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-status-indicator">
+          <div class="status-pulse-dot"></div>
+          <span class="nav-label">MEP QA/QC Engine Active</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="app-main">
+      <!-- Skydash Top Header Bar with User Metrics -->
+      <header class="app-header">
+        <div class="header-left">
+          <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Navigation Sidebar">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          
+          <div class="header-search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <form method="get" action="{% url 'inspections_list' %}">
+              <input type="text" name="q" placeholder="Search defects, units..." value="{{ search_query|default:'' }}">
+            </form>
+          </div>
+        </div>
+
+        <!-- Top Header User Metrics Bar -->
+        <div class="header-metrics-strip">
+          <div class="metric-badge-item badge-projects" title="Total Active Projects">
+            <i class="fa-solid fa-city" style="color: var(--skydash-primary);"></i>
+            <span class="metric-label">Projects:</span>
+            <span>{{ metrics.total_projects|default:"0" }}</span>
+          </div>
+
+          <div class="metric-badge-item badge-pending" title="Pending Contractor Clearance">
+            <i class="fa-solid fa-clock-rotate-left" style="color: #c98e00;"></i>
+            <span class="metric-label">Pending:</span>
+            <span>{{ metrics.pending_clearance|default:"0" }}</span>
+          </div>
+
+          <div class="metric-badge-item badge-ncr" title="Open Non-Conformance Reports">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span class="metric-label">NCRs:</span>
+            <span>{{ metrics.open_ncrs|default:"0" }}</span>
+          </div>
+
+          <div class="metric-badge-item badge-cleared" title="Overall Clearance Pass Rate">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span class="metric-label">Clearance:</span>
+            <span>{{ metrics.clearance_rate|default:"0" }}%</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- User Profile & Session -->
+          {% if user.is_authenticated %}
+          <div class="user-profile-widget">
+            <div class="user-avatar-skydash">
+              {{ user.first_name|default:user.username|slice:":1"|upper }}
+            </div>
+            <div class="user-details">
+              <span class="user-fullname">{{ user.get_full_name|default:user.username }}</span>
+              <span class="user-engineering-role">MEP QA/QC Engineer</span>
+            </div>
+            <a href="{% url 'logout' %}" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="margin-left: 0.5rem;" title="Sign Out">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+              <span>Logout</span>
+            </a>
+          </div>
+          {% else %}
+          <a href="{% url 'login' %}" class="btn-skydash btn-skydash-primary btn-skydash-sm">Sign In</a>
+          {% endif %}
+        </div>
+      </header>
+
+      <!-- App Content Container -->
+      <div class="app-content">
+        <!-- Toast / Alerts -->
+        {% if messages %}
+          {% for message in messages %}
+            <div class="mep-alert mep-alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+              <span><i class="fa-solid fa-circle-info me-2"></i> {{ message }}</span>
+              <button type="button" style="background:none; border:none; cursor:pointer; color:inherit; font-size:1.1rem;" onclick="this.parentElement.remove();">&times;</button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile & Tablet Native App-Like Bottom Navigation Bar -->
+  <nav class="app-bottom-nav">
+    <a href="{% url 'dashboard' %}" class="bottom-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <i class="fa-solid fa-table-columns"></i>
+      <span>Dashboard</span>
+    </a>
+    
+    <a href="{% url 'projects_list' %}" class="bottom-nav-item {% if 'projects' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="fa-solid fa-building"></i>
+      <span>Projects</span>
+    </a>
+
+    <!-- Center Floating Action Button (FAB) -->
+    <a href="{% url 'inspection_create' %}" class="bottom-nav-fab" title="Log New Defect">
+      <i class="fa-solid fa-plus"></i>
+    </a>
+
+    <a href="{% url 'inspections_list' %}" class="bottom-nav-item {% if 'inspections' in request.resolver_match.url_name and request.resolver_match.url_name != 'inspection_create' %}active{% endif %}">
+      <i class="fa-solid fa-clipboard-check"></i>
+      <span>Inspections</span>
+    </a>
+
+    <a href="{% url 'logout' %}" class="bottom-nav-item" title="Log out">
+      <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      <span>Logout</span>
+    </a>
+  </nav>
+
+  <script src="{% static 'js/qaqc-admin.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
