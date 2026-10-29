@@ -12,10 +12,12 @@ urlpatterns = [
     path('projects/<int:project_id>/', views.project_detail_view, name='project_detail'),
     path('projects/<int:project_id>/delete/', views.project_delete_view, name='project_delete'),
     
-    # Inspections
+    # Inspections & Gallery
     path('inspections/', views.inspections_list_view, name='inspections_list'),
     path('inspections/new/', views.inspection_create_view, name='inspection_create'),
     path('inspections/<int:inspection_id>/', views.inspection_detail_view, name='inspection_detail'),
+    path('inspections/<int:inspection_id>/delete/', views.inspection_delete_view, name='inspection_delete'),
+    path('gallery/', views.defects_gallery_view, name='defects_gallery'),
     
     # APIs
     path('api/inspections/<int:inspection_id>/status/', views.inspection_update_status_api, name='api_inspection_status'),

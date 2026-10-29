@@ -1,0 +1,643 @@
+{% extends 'qaqc/base.html' %}
+
+{% block title %}MEP Defects Photo Gallery &bull; Skydash MEP QA/QC{% endblock %}
+{% block page_heading %}Defects Photo Gallery{% endblock %}
+
+{% block content %}
+<!-- Header Bar -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--text-dark); margin: 0; letter-spacing: -0.02em;">
+      <i class="fa-solid fa-images" style="color: var(--skydash-primary); margin-right: 0.35rem;"></i>
+      MEP Defects Photo Gallery
+    </h2>
+    <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.3rem 0 0 0;">
+      Filter site snag photos by floor, MEP trade, and date. Select photos to generate and share formatted WhatsApp site reports.
+    </p>
+  </div>
+  <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+    <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-body); background: #fff; padding: 0.45rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+      <i class="fa-solid fa-camera" style="color: var(--skydash-primary);"></i>
+      <strong style="color: var(--text-dark);" id="galleryTotalCount">{{ total_photos_count }}</strong> Photos
+    </span>
+    <a href="{% url 'inspection_create' %}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+      <i class="fa-solid fa-plus"></i> Log New Defect
+    </a>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- COMPREHENSIVE FILTER PANEL: FLOOR-WISE, MEP-WISE, DATE-WISE, SITE-WISE    -->
+<!-- ========================================================================= -->
+<div class="skydash-card" style="margin-bottom: 1.5rem;">
+  <div class="skydash-card-body" style="padding: 1.25rem 1.4rem;">
+    <form method="get" action="{% url 'defects_gallery' %}" id="galleryFilterForm">
+
+      <!-- Row 1: Site, Floor, and Trade Filters -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 1.1rem; align-items: flex-end;">
+        
+        <!-- Project Site Selector -->
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-size: 0.76rem; font-weight: 800; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.04em;">
+            <i class="fa-solid fa-building" style="color: var(--skydash-primary);"></i> Project Site
+          </label>
+          <select name="project" class="form-select" onchange="this.form.submit()" style="font-size: 0.82rem; padding: 0.48rem 0.75rem;">
+            <option value="all" {% if not selected_project or selected_project == 'all' %}selected{% endif %}>All Project Sites</option>
+            {% for p in projects %}
+            <option value="{{ p.id }}" {% if selected_project == p.id|stringformat:'s' %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Floor-Wise Selector -->
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-size: 0.76rem; font-weight: 800; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.04em;">
+            <i class="fa-solid fa-stairs" style="color: var(--skydash-primary);"></i> Floor Level
+          </label>
+          <select name="floor" class="form-select" onchange="this.form.submit()" style="font-size: 0.82rem; padding: 0.48rem 0.75rem;">
+            <option value="all" {% if not selected_floor or selected_floor == 'all' %}selected{% endif %}>All Floors</option>
+            {% for fl in distinct_floors %}
+            <option value="{{ fl }}" {% if selected_floor == fl|stringformat:'s' %}selected{% endif %}>Level {{ fl }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- MEP Discipline Selector -->
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-size: 0.76rem; font-weight: 800; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.04em;">
+            <i class="fa-solid fa-wrench" style="color: var(--skydash-primary);"></i> MEP Trade / Discipline
+          </label>
+          <select name="department" class="form-select" onchange="this.form.submit()" style="font-size: 0.82rem; padding: 0.48rem 0.75rem;">
+            <option value="all" {% if not selected_department or selected_department == 'all' %}selected{% endif %}>All Disciplines</option>
+            <option value="HVAC" {% if selected_department == 'HVAC' %}selected{% endif %}>HVAC Duct & Piping</option>
+            <option value="Plumbing" {% if selected_department == 'Plumbing' %}selected{% endif %}>Plumbing & Drainage</option>
+            <option value="Electrical" {% if selected_department == 'Electrical' %}selected{% endif %}>Electrical & Containment</option>
+            <option value="Firefighting" {% if selected_department == 'Firefighting' %}selected{% endif %}>Firefighting & Sprinklers</option>
+          </select>
+        </div>
+
+        <!-- Clearance Status -->
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-size: 0.76rem; font-weight: 800; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.04em;">
+            <i class="fa-solid fa-shield-halved" style="color: var(--skydash-primary);"></i> Status
+          </label>
+          <select name="status" class="form-select" onchange="this.form.submit()" style="font-size: 0.82rem; padding: 0.48rem 0.75rem;">
+            <option value="all" {% if not selected_status or selected_status == 'all' %}selected{% endif %}>All Statuses</option>
+            <option value="Open NCR" {% if selected_status == 'Open NCR' %}selected{% endif %}>Open NCR</option>
+            <option value="Pending Clearance" {% if selected_status == 'Pending Clearance' %}selected{% endif %}>Pending Clearance</option>
+            <option value="Given Clearance" {% if selected_status == 'Given Clearance' %}selected{% endif %}>Given Clearance</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 2: Date-Wise Filter Buttons & Search -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.85rem; padding-top: 0.85rem; border-top: 1px solid var(--border-light);">
+        
+        <!-- Date Pills -->
+        <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+          <span style="font-size: 0.76rem; font-weight: 800; color: var(--text-dark); margin-right: 0.35rem;">
+            <i class="fa-solid fa-calendar-day" style="color: var(--skydash-primary);"></i> Date Range:
+          </span>
+
+          <input type="hidden" name="date_filter" id="dateFilterInput" value="{{ selected_date_filter }}">
+
+          <button type="button" class="btn-skydash {% if not selected_date_filter or selected_date_filter == 'all' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px; font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="setDateFilter('all')">
+            All Time
+          </button>
+          <button type="button" class="btn-skydash {% if selected_date_filter == 'today' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px; font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="setDateFilter('today')">
+            Today
+          </button>
+          <button type="button" class="btn-skydash {% if selected_date_filter == 'week' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px; font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="setDateFilter('week')">
+            Last 7 Days
+          </button>
+          <button type="button" class="btn-skydash {% if selected_date_filter == 'month' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px; font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="setDateFilter('month')">
+            Last 30 Days
+          </button>
+          <button type="button" class="btn-skydash {% if selected_date_filter == 'custom' %}btn-skydash-primary{% else %}btn-skydash-outline{% endif %} btn-skydash-sm" style="border-radius: 20px; font-size: 0.75rem; padding: 0.25rem 0.75rem;" onclick="toggleCustomDate()">
+            Custom...
+          </button>
+        </div>
+
+        <!-- Search Box -->
+        <div style="display: flex; gap: 0.4rem; align-items: center;">
+          <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search snag, room, tag..." style="font-size: 0.8rem; padding: 0.45rem 0.75rem; width: 200px;">
+          <button type="submit" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+            <i class="fa-solid fa-magnifying-glass"></i> Filter
+          </button>
+          {% if selected_project or selected_floor or selected_department or selected_status or selected_date_filter or search_query %}
+          <a href="{% url 'defects_gallery' %}" class="btn-skydash btn-skydash-outline btn-skydash-sm" title="Clear all filters">
+            <i class="fa-solid fa-xmark"></i>
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Custom Date Inputs (Collapsible) -->
+      <div id="customDateRangeBox" style="display: {% if selected_date_filter == 'custom' %}flex{% else %}none{% endif %}; gap: 0.75rem; align-items: center; margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px dashed var(--border-light); flex-wrap: wrap;">
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-body);">From Date:</span>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control" style="width: 160px; font-size: 0.8rem; padding: 0.35rem 0.65rem;">
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-body);">To Date:</span>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control" style="width: 160px; font-size: 0.8rem; padding: 0.35rem 0.65rem;">
+        <button type="submit" class="btn-skydash btn-skydash-primary btn-skydash-sm">Apply Custom Dates</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- BATCH ACTION & WHATSAPP SHARING BAR (FLOATING / STICKY ON SELECTION)      -->
+<!-- ========================================================================= -->
+<div id="galleryBatchBar" style="display: none; position: sticky; top: 15px; z-index: 1000; background: #1E293B; color: #fff; padding: 0.85rem 1.25rem; border-radius: var(--radius-md); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); margin-bottom: 1.5rem; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; border: 1px solid rgba(255,255,255,0.1);">
+  <div style="display: flex; align-items: center; gap: 0.85rem;">
+    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 700;">
+      <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" style="width: 18px; height: 18px; accent-color: #25D366; cursor: pointer;">
+      <span>Select All</span>
+    </label>
+    <div style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 800;">
+      <span id="selectedCountBadge">0</span> Selected
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+    <!-- Share to WhatsApp Button -->
+    <button type="button" class="btn-skydash" onclick="shareSelectedToWhatsApp()" style="background: #25D366; color: #fff; border-color: #25D366; font-weight: 800; font-size: 0.85rem; padding: 0.45rem 1rem; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 8px rgba(37, 211, 102, 0.4);">
+      <i class="fa-brands fa-whatsapp" style="font-size: 1.15rem;"></i>
+      <span>Share to WhatsApp</span>
+    </button>
+
+    <!-- Copy Text Report -->
+    <button type="button" class="btn-skydash btn-skydash-outline" onclick="copyReportToClipboard()" style="color: #fff; border-color: rgba(255,255,255,0.3); font-size: 0.8rem; padding: 0.45rem 0.85rem;">
+      <i class="fa-solid fa-copy"></i> Copy Report
+    </button>
+
+    <!-- Clear Selection -->
+    <button type="button" class="btn-skydash btn-skydash-outline" onclick="clearAllSelections()" style="color: #cbd5e1; border-color: rgba(255,255,255,0.2); font-size: 0.8rem; padding: 0.45rem 0.75rem;">
+      Clear
+    </button>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- PHOTO CARDS GRID                                                          -->
+<!-- ========================================================================= -->
+{% if inspections %}
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1.25rem;" id="galleryGrid">
+  {% for item in inspections %}
+  <div class="gallery-card" id="card-insp-{{ item.id }}" style="background: #FFFFFF; border: 2px solid var(--border-light); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-subtle); display: flex; flex-direction: column; transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease; position: relative;">
+    
+    <!-- Photo Container -->
+    <div style="position: relative; height: 210px; background: #0f172a; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer;" onclick="openLightboxModal('{{ item.id }}', '{% if item.annotated_image %}{{ item.annotated_image.url }}{% else %}{{ item.original_image.url }}{% endif %}', '{{ item.department|escapejs }}', '{{ item.project.name|escapejs }}', '{{ item.floor_number }}', '{{ item.apartment_number|default:''|escapejs }}', '{{ item.status|escapejs }}', '{{ item.faults_description|escapejs }}', '{{ item.date_recorded|date:'M d, Y' }}')">
+      
+      <!-- Defect Image -->
+      {% if item.annotated_image %}
+        <img src="{{ item.annotated_image.url }}" alt="Defect #{{ item.id }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+      {% elif item.original_image %}
+        <img src="{{ item.original_image.url }}" alt="Defect #{{ item.id }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+      {% else %}
+        <div style="text-align: center; color: #94a3b8; padding: 1.5rem;">
+          <i class="fa-solid fa-camera" style="font-size: 2.2rem; color: #64748b; margin-bottom: 0.35rem; display: block;"></i>
+          <span style="font-size: 0.78rem; font-weight: 700; color: #e2e8f0;">No Photo Attached</span>
+        </div>
+      {% endif %}
+
+      <!-- Top-Left Selection Checkbox -->
+      <div style="position: absolute; top: 10px; left: 10px; z-index: 5;" onclick="event.stopPropagation();">
+        <label style="cursor: pointer; display: flex; align-items: center; background: rgba(15, 23, 42, 0.75); border-radius: 6px; padding: 4px; backdrop-filter: blur(4px);">
+          <input type="checkbox" class="gallery-select-checkbox" data-id="{{ item.id }}" 
+                 data-dept="{{ item.department|escape }}"
+                 data-project="{{ item.project.name|escape }}"
+                 data-floor="{{ item.floor_number }}"
+                 data-room="{{ item.apartment_number|default:''|escape }}"
+                 data-status="{{ item.status|escape }}"
+                 data-fault="{{ item.faults_description|escape }}"
+                 data-date="{{ item.date_recorded|date:'M d, Y' }}"
+                 data-url="{% if item.annotated_image %}{{ item.annotated_image.url }}{% elif item.original_image %}{{ item.original_image.url }}{% endif %}"
+                 data-detail-url="{% url 'inspection_detail' item.id %}"
+                 onchange="onCardSelectionChange()"
+                 style="width: 18px; height: 18px; accent-color: #25D366; cursor: pointer;">
+        </label>
+      </div>
+
+      <!-- Top-Right Badges -->
+      <div style="position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-end;">
+        <span class="badge-dept dept-{{ item.department|lower }}" style="font-size: 0.7rem; padding: 3px 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.25);">
+          {{ item.department }}
+        </span>
+        <span class="badge-status {{ item.status_badge_class }}" style="font-size: 0.68rem; padding: 2px 7px;">
+          {{ item.status }}
+        </span>
+      </div>
+
+      <!-- Bottom Overlaid Location Bar -->
+      <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(15, 23, 42, 0.85)); padding: 1.25rem 0.85rem 0.5rem 0.85rem; display: flex; justify-content: space-between; align-items: center; color: #fff;">
+        <span style="font-size: 0.75rem; font-weight: 800; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">
+          <i class="fa-solid fa-stairs"></i> Level {{ item.floor_number }}
+          {% if item.apartment_number %} &bull; {{ item.apartment_number }}{% endif %}
+        </span>
+        {% if item.overlay_count %}
+        <span style="font-size: 0.7rem; font-weight: 800; background: rgba(75, 73, 172, 0.9); padding: 2px 6px; border-radius: 4px;">
+          <i class="fa-solid fa-location-dot"></i> {{ item.overlay_count }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Card Body Information -->
+    <div style="padding: 0.95rem 1rem; display: flex; flex-direction: column; flex-grow: 1;">
+      
+      <!-- Project and Date Metadata -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+        <span style="font-size: 0.74rem; font-weight: 800; color: var(--skydash-primary);">
+          {{ item.project.name|truncatechars:24 }}
+        </span>
+        <span style="font-size: 0.72rem; color: var(--text-body);">
+          {{ item.date_recorded|date:"M d, Y" }}
+        </span>
+      </div>
+
+      <!-- Snag Description -->
+      <p style="font-size: 0.81rem; color: var(--text-dark); line-height: 1.4; margin: 0 0 0.85rem 0; flex-grow: 1;">
+        {{ item.faults_description|truncatewords:15 }}
+      </p>
+
+      <!-- Card Action Buttons -->
+      <div style="display: flex; gap: 0.4rem; align-items: center; padding-top: 0.65rem; border-top: 1px solid var(--border-light);">
+        
+        <!-- Individual WhatsApp Share -->
+        <button type="button" class="btn-skydash btn-skydash-sm" onclick="shareSingleToWhatsApp('{{ item.id }}', '{{ item.department|escapejs }}', '{{ item.project.name|escapejs }}', '{{ item.floor_number }}', '{{ item.apartment_number|default:''|escapejs }}', '{{ item.status|escapejs }}', '{{ item.faults_description|escapejs }}', '{% if item.annotated_image %}{{ item.annotated_image.url }}{% elif item.original_image %}{{ item.original_image.url }}{% endif %}')" title="Share this defect on WhatsApp" style="background: #25D366; color: #fff; border-color: #25D366; font-size: 0.78rem; padding: 0.35rem 0.65rem;">
+          <i class="fa-brands fa-whatsapp"></i>
+        </button>
+
+        <!-- Inspect Full Details -->
+        <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="flex-grow: 1; text-align: center; font-size: 0.76rem; padding: 0.35rem 0.65rem;" title="View Inspection & Pin Markers">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Inspect
+        </a>
+
+        <!-- Delete Inspection (Password Protected) -->
+        <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="color: var(--skydash-danger); border-color: #ffd2d2; padding: 0.35rem 0.65rem;" onclick="openDeleteInspectionModal('{{ item.id }}', '{{ item.department|escapejs }}', '{{ item.project.name|escapejs }}', '{{ item.floor_number }}', '{{ item.apartment_number|default:''|escapejs }}')" title="Delete Defect Photo">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<!-- Empty State -->
+<div style="padding: 4rem 1.5rem; background: #fff; border-radius: var(--radius-xl); text-align: center; border: 1px solid var(--border-light);">
+  <i class="fa-solid fa-images" style="font-size: 3rem; color: #b2b9c5; margin-bottom: 0.85rem; display: block;"></i>
+  <h3 style="margin: 0; color: var(--text-dark); font-weight: 800; font-size: 1.25rem;">No Defect Photos Matched Filters</h3>
+  <p style="font-size: 0.85rem; color: var(--text-body); margin: 0.5rem 0 1.25rem 0;">
+    Try resetting your floor level, date range, or MEP trade filters.
+  </p>
+  <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+    <a href="{% url 'defects_gallery' %}" class="btn-skydash btn-skydash-outline">
+      <i class="fa-solid fa-rotate-left"></i> Reset All Filters
+    </a>
+    <a href="{% url 'inspection_create' %}" class="btn-skydash btn-skydash-primary">
+      <i class="fa-solid fa-camera"></i> Upload New Defect Photo
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<!-- ========================================================================= -->
+<!-- MODAL 1: PHOTO LIGHTBOX VIEWER                                            -->
+<!-- ========================================================================= -->
+<div class="mep-modal-backdrop" id="modalPhotoLightbox">
+  <div class="mep-modal" style="max-width: 820px; padding: 0; overflow: hidden;">
+    <div style="position: relative; background: #0b0f19; min-height: 380px; max-height: 540px; display: flex; align-items: center; justify-content: center;">
+      <img id="lightboxImg" src="" alt="Full Defect Photo" style="max-width: 100%; max-height: 540px; object-fit: contain;">
+      <button type="button" onclick="closeModal('modalPhotoLightbox')" style="position: absolute; top: 12px; right: 14px; background: rgba(0,0,0,0.6); color: #fff; border: none; font-size: 1.5rem; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">&times;</button>
+    </div>
+    <div style="padding: 1.25rem 1.5rem; background: #fff;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h4 id="lightboxTitle" style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text-dark);"></h4>
+          <span id="lightboxLocation" style="font-size: 0.8rem; color: var(--text-body);"></span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <span id="lightboxDeptBadge"></span>
+          <span id="lightboxStatusBadge"></span>
+        </div>
+      </div>
+      <p id="lightboxDescription" style="font-size: 0.85rem; color: var(--text-body); line-height: 1.5; margin: 0 0 1rem 0;"></p>
+      <div style="display: flex; justify-content: flex-end; gap: 0.6rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalPhotoLightbox')">Close</button>
+        <button type="button" class="btn-skydash" id="lightboxWhatsAppBtn" style="background: #25D366; color: #fff; border-color: #25D366;">
+          <i class="fa-brands fa-whatsapp"></i> Share to WhatsApp
+        </button>
+        <a id="lightboxInspectLink" href="" class="btn-skydash btn-skydash-primary">
+          <i class="fa-solid fa-crosshairs"></i> Open Pin Markers
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 2: DELETE DEFECT INSPECTION (PASSWORD PROTECTED)                    -->
+<!-- ========================================================================= -->
+<div class="mep-modal-backdrop" id="modalDeleteInspection">
+  <div class="mep-modal" style="max-width: 500px;">
+    <div class="skydash-card-header" style="background: #FFF5F5; border-bottom: 1px solid #FFD2D2; padding: 1.15rem 1.4rem;">
+      <div>
+        <h3 class="skydash-card-title" style="color: var(--skydash-danger); margin: 0; font-size: 1.15rem;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Delete Defect Inspection</span>
+        </h3>
+        <span style="font-size: 0.74rem; color: #b91c1c; margin-top: 2px; display: block;">
+          Irreversible Action &bull; Password Verification Required
+        </span>
+      </div>
+      <button type="button" onclick="closeModal('modalDeleteInspection')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" id="deleteInspectionForm" action="">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'defects_gallery' %}">
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        
+        <p style="font-size: 0.86rem; color: var(--text-dark); margin: 0 0 1rem 0; line-height: 1.5;">
+          Are you sure you want to permanently delete <strong id="deleteInspectionTitle" style="color: var(--skydash-danger);">Defect Inspection</strong>?
+        </p>
+
+        <!-- Summary Box -->
+        <div style="background: #FFF5F5; border: 1px solid #FFD2D2; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.15rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; font-size: 0.78rem;">
+            <div>
+              <span style="color: #64748b;">Discipline:</span>
+              <strong id="deleteInspectionDept" style="color: var(--text-dark);">-</strong>
+            </div>
+            <div>
+              <span style="color: #64748b;">Project Site:</span>
+              <strong id="deleteInspectionProject" style="color: var(--text-dark);">-</strong>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <span style="color: #64748b;">Location:</span>
+              <strong id="deleteInspectionLocation" style="color: var(--text-dark);">-</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Confirmation Input -->
+        <div style="margin-bottom: 0.5rem;">
+          <label class="form-label" style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">
+            <i class="fa-solid fa-lock"></i> Enter Your Password to Authorize Deletion <span style="color: var(--skydash-danger);">*</span>
+          </label>
+          <input type="password" name="password" id="deleteInspectionPasswordInput" class="form-control" placeholder="Enter your current login password" required autocomplete="current-password">
+          <div style="font-size: 0.72rem; color: var(--text-body); margin-top: 0.3rem;">
+            This inspection and its annotated photos will be permanently removed.
+          </div>
+        </div>
+
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.65rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalDeleteInspection')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary" style="background: var(--skydash-danger); border-color: var(--skydash-danger); font-weight: 800;">
+          <i class="fa-solid fa-trash-can"></i> Confirm & Delete Inspection
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Toggle Date Filter
+function setDateFilter(filterType) {
+  document.getElementById('dateFilterInput').value = filterType;
+  const customBox = document.getElementById('customDateRangeBox');
+  if (customBox) customBox.style.display = (filterType === 'custom') ? 'flex' : 'none';
+  if (filterType !== 'custom') {
+    document.getElementById('galleryFilterForm').submit();
+  }
+}
+
+function toggleCustomDate() {
+  const customBox = document.getElementById('customDateRangeBox');
+  const isHidden = customBox.style.display === 'none' || !customBox.style.display;
+  customBox.style.display = isHidden ? 'flex' : 'none';
+  document.getElementById('dateFilterInput').value = 'custom';
+}
+
+// Checkbox and Card Selection Handling
+function onCardSelectionChange() {
+  const checkboxes = document.querySelectorAll('.gallery-select-checkbox');
+  let selectedCount = 0;
+
+  checkboxes.forEach(cb => {
+    const card = document.getElementById(`card-insp-${cb.dataset.id}`);
+    if (cb.checked) {
+      selectedCount++;
+      if (card) {
+        card.style.borderColor = '#25D366';
+        card.style.boxShadow = '0 0 0 2px rgba(37, 211, 102, 0.35)';
+      }
+    } else {
+      if (card) {
+        card.style.borderColor = 'var(--border-light)';
+        card.style.boxShadow = 'var(--shadow-subtle)';
+      }
+    }
+  });
+
+  const batchBar = document.getElementById('galleryBatchBar');
+  const badge = document.getElementById('selectedCountBadge');
+  const selectAllCb = document.getElementById('selectAllCheckbox');
+
+  if (selectedCount > 0) {
+    if (batchBar) batchBar.style.display = 'flex';
+    if (badge) badge.textContent = selectedCount;
+    if (selectAllCb) selectAllCb.checked = (selectedCount === checkboxes.length);
+  } else {
+    if (batchBar) batchBar.style.display = 'none';
+    if (selectAllCb) selectAllCb.checked = false;
+  }
+}
+
+function toggleSelectAll(checked) {
+  const checkboxes = document.querySelectorAll('.gallery-select-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = checked;
+  });
+  onCardSelectionChange();
+}
+
+function clearAllSelections() {
+  toggleSelectAll(false);
+}
+
+// Generate Formatted WhatsApp Defect Report
+function buildWhatsAppReportText(selectedItems) {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const origin = window.location.origin;
+
+  let text = `🚨 *MEP QA/QC DEFECT INSPECTION REPORT*\n`;
+  text += `📅 *Date:* ${dateStr}\n`;
+  text += `📋 *Total Items:* ${selectedItems.length}\n`;
+  text += `────────────────────\n\n`;
+
+  selectedItems.forEach((item, index) => {
+    const numEmoji = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'][index] || `${index + 1}.`;
+    text += `${numEmoji} *[${item.dept} - ${item.status}]*\n`;
+    text += `🏢 *Site:* ${item.project}\n`;
+    text += `📍 *Location:* Level ${item.floor}${item.room ? ' (' + item.room + ')' : ''}\n`;
+    text += `⚠️ *Snag:* ${item.fault}\n`;
+    if (item.url) {
+      text += `📸 *Photo:* ${origin}${item.url}\n`;
+    }
+    if (item.detailUrl) {
+      text += `🔗 *Details:* ${origin}${item.detailUrl}\n`;
+    }
+    text += `\n`;
+  });
+
+  text += `────────────────────\n`;
+  text += `_Generated via MEP QA/QC Engineering Dashboard_`;
+  return text;
+}
+
+// Share Selected to WhatsApp
+function shareSelectedToWhatsApp() {
+  const checkedBoxes = document.querySelectorAll('.gallery-select-checkbox:checked');
+  if (checkedBoxes.length === 0) {
+    showToast('Please select at least one defect photo to share.', 'error');
+    return;
+  }
+
+  const items = Array.from(checkedBoxes).map(cb => ({
+    id: cb.dataset.id,
+    dept: cb.dataset.dept,
+    project: cb.dataset.project,
+    floor: cb.dataset.floor,
+    room: cb.dataset.room,
+    status: cb.dataset.status,
+    fault: cb.dataset.fault,
+    url: cb.dataset.url,
+    detailUrl: cb.dataset.detailUrl
+  }));
+
+  const text = buildWhatsAppReportText(items);
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  window.open(waUrl, '_blank');
+}
+
+// Share Single Defect to WhatsApp
+function shareSingleToWhatsApp(id, dept, project, floor, room, status, fault, imgUrl) {
+  const origin = window.location.origin;
+  let text = `🚨 *MEP QA/QC DEFECT SNAG REPORT*\n`;
+  text += `────────────────────\n`;
+  text += `🔧 *Discipline:* ${dept} (${status})\n`;
+  text += `🏢 *Site:* ${project}\n`;
+  text += `📍 *Location:* Level ${floor}${room ? ' (' + room + ')' : ''}\n`;
+  text += `⚠️ *Issue:* ${fault}\n`;
+  if (imgUrl) {
+    text += `📸 *Photo:* ${origin}${imgUrl}\n`;
+  }
+  text += `🔗 *Details:* ${origin}/inspections/${id}/\n`;
+  text += `────────────────────\n`;
+  text += `_MEP QA/QC Engineering Dashboard_`;
+
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  window.open(waUrl, '_blank');
+}
+
+// Copy Selected Report Text to Clipboard
+async function copyReportToClipboard() {
+  const checkedBoxes = document.querySelectorAll('.gallery-select-checkbox:checked');
+  if (checkedBoxes.length === 0) {
+    showToast('Please select at least one defect photo to copy.', 'error');
+    return;
+  }
+
+  const items = Array.from(checkedBoxes).map(cb => ({
+    id: cb.dataset.id,
+    dept: cb.dataset.dept,
+    project: cb.dataset.project,
+    floor: cb.dataset.floor,
+    room: cb.dataset.room,
+    status: cb.dataset.status,
+    fault: cb.dataset.fault,
+    url: cb.dataset.url,
+    detailUrl: cb.dataset.detailUrl
+  }));
+
+  const text = buildWhatsAppReportText(items);
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(`Copied ${items.length} defect report(s) to clipboard!`, 'success');
+  } catch (err) {
+    showToast('Could not copy automatically. Sharing via WhatsApp instead.', 'info');
+    shareSelectedToWhatsApp();
+  }
+}
+
+// Lightbox Modal
+function openLightboxModal(id, imgUrl, dept, project, floor, room, status, fault, dateStr) {
+  const imgEl = document.getElementById('lightboxImg');
+  if (imgEl) imgEl.src = imgUrl;
+
+  const titleEl = document.getElementById('lightboxTitle');
+  if (titleEl) titleEl.textContent = `Defect Inspection #${id} &bull; ${project}`;
+
+  const locEl = document.getElementById('lightboxLocation');
+  if (locEl) locEl.textContent = `Level ${floor}${room ? ' (' + room + ')' : ''} &bull; Logged ${dateStr}`;
+
+  const deptBadge = document.getElementById('lightboxDeptBadge');
+  if (deptBadge) {
+    deptBadge.className = `badge-dept dept-${dept.toLowerCase()}`;
+    deptBadge.textContent = dept;
+  }
+
+  const statusBadge = document.getElementById('lightboxStatusBadge');
+  if (statusBadge) {
+    statusBadge.className = 'badge-status ' + (status === 'Given Clearance' ? 'badge-cleared' : (status === 'Open NCR' ? 'badge-ncr' : 'badge-pending'));
+    statusBadge.textContent = status;
+  }
+
+  const descEl = document.getElementById('lightboxDescription');
+  if (descEl) descEl.textContent = fault;
+
+  const waBtn = document.getElementById('lightboxWhatsAppBtn');
+  if (waBtn) {
+    waBtn.onclick = function() {
+      shareSingleToWhatsApp(id, dept, project, floor, room, status, fault, imgUrl);
+    };
+  }
+
+  const inspectLink = document.getElementById('lightboxInspectLink');
+  if (inspectLink) inspectLink.href = `/inspections/${id}/`;
+
+  openModal('modalPhotoLightbox');
+}
+
+// Delete Inspection Modal
+function openDeleteInspectionModal(inspId, dept, projectName, floorNum, aptNum) {
+  const form = document.getElementById('deleteInspectionForm');
+  if (form) form.action = `/inspections/${inspId}/delete/`;
+
+  const titleEl = document.getElementById('deleteInspectionTitle');
+  if (titleEl) titleEl.textContent = `Defect Inspection #${inspId}`;
+
+  const deptEl = document.getElementById('deleteInspectionDept');
+  if (deptEl) deptEl.textContent = dept;
+
+  const projEl = document.getElementById('deleteInspectionProject');
+  if (projEl) projEl.textContent = projectName;
+
+  const locEl = document.getElementById('deleteInspectionLocation');
+  if (locEl) locEl.textContent = `Level ${floorNum}${aptNum ? ' (' + aptNum + ')' : ''}`;
+
+  const passInput = document.getElementById('deleteInspectionPasswordInput');
+  if (passInput) passInput.value = '';
+
+  openModal('modalDeleteInspection');
+}
+</script>
+{% endblock %}

@@ -754,9 +754,14 @@
           </h3>
           <span style="font-size: 0.8rem; color: var(--text-body);">Site photos with marked circle points, filterable by individual building levels.</span>
         </div>
-        <a href="{% url 'inspection_create' %}?project={{ project.id }}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
-          <i class="fa-solid fa-camera"></i> Upload Floor Photo
-        </a>
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <a href="{% url 'defects_gallery' %}?project={{ project.id }}" class="btn-skydash btn-skydash-outline btn-skydash-sm">
+            <i class="fa-brands fa-whatsapp" style="color: #25D366;"></i> Batch WhatsApp Share
+          </a>
+          <a href="{% url 'inspection_create' %}?project={{ project.id }}" class="btn-skydash btn-skydash-primary btn-skydash-sm">
+            <i class="fa-solid fa-camera"></i> Upload Floor Photo
+          </a>
+        </div>
       </div>
 
       <!-- Floor Numbers Filter Pills -->
@@ -827,9 +832,14 @@
               {{ item.faults_description|truncatewords:14 }}
             </p>
 
-            <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-primary btn-skydash-sm" style="width: 100%; text-align: center;">
-              <i class="fa-solid fa-crosshairs"></i> Inspect Photo Markers
-            </a>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <a href="{% url 'inspection_detail' item.id %}" class="btn-skydash btn-skydash-primary btn-skydash-sm" style="flex-grow: 1; text-align: center;">
+                <i class="fa-solid fa-crosshairs"></i> Inspect
+              </a>
+              <button type="button" class="btn-skydash btn-skydash-sm" onclick="shareDefectWhatsApp('{{ item.id }}', '{{ item.department|escapejs }}', '{{ project.name|escapejs }}', '{{ item.floor_number }}', '{{ item.apartment_number|default:''|escapejs }}', '{{ item.status|escapejs }}', '{{ item.faults_description|escapejs }}', '{% if item.annotated_image %}{{ item.annotated_image.url }}{% elif item.original_image %}{{ item.original_image.url }}{% endif %}')" title="Share this defect on WhatsApp" style="background: #25D366; color: #fff; border-color: #25D366; padding: 0.35rem 0.65rem;">
+                <i class="fa-brands fa-whatsapp"></i>
+              </button>
+            </div>
           </div>
         </div>
         {% endfor %}
@@ -857,6 +867,25 @@ function changeMatrixFilter(paramName, paramVal) {
   url.searchParams.set('tab', 'matrix');
   url.searchParams.set(paramName, paramVal);
   window.location.href = url.toString();
+}
+
+function shareDefectWhatsApp(id, dept, project, floor, room, status, fault, imgUrl) {
+  const origin = window.location.origin;
+  let text = `🚨 *MEP QA/QC DEFECT SNAG REPORT*\n`;
+  text += `────────────────────\n`;
+  text += `🔧 *Discipline:* ${dept} (${status})\n`;
+  text += `🏢 *Site:* ${project}\n`;
+  text += `📍 *Location:* Level ${floor}${room ? ' (' + room + ')' : ''}\n`;
+  text += `⚠️ *Issue:* ${fault}\n`;
+  if (imgUrl) {
+    text += `📸 *Photo:* ${origin}${imgUrl}\n`;
+  }
+  text += `🔗 *Details:* ${origin}/inspections/${id}/\n`;
+  text += `────────────────────\n`;
+  text += `_MEP QA/QC Engineering Dashboard_`;
+
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  window.open(waUrl, '_blank');
 }
 
 async function updateRoomMilestoneStatus(selectElem) {

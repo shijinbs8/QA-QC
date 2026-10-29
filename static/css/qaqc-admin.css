@@ -1187,6 +1187,61 @@ body {
 .draggable-badge.badge-desc-tag { border-left: 3px solid var(--skydash-danger); max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
 .draggable-badge.badge-date-tag { border-left: 3px solid var(--skydash-success); }
 
+/* High-Tech Unified Defect Overlay Card (Screenshot Matching) */
+.unified-defect-card {
+  position: absolute;
+  min-width: 270px;
+  max-width: 360px;
+  background: rgba(24, 27, 36, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid #F97316;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  cursor: grab;
+  touch-action: none;
+  z-index: 30;
+  user-select: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.unified-defect-card:active {
+  cursor: grabbing !important;
+  transform: scale(1.02);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.8);
+}
+
+.unified-defect-card[data-dept="HVAC"] {
+  border-color: #F97316;
+}
+.unified-defect-card[data-dept="HVAC"] .card-dept-pill {
+  background: #F97316;
+}
+
+.unified-defect-card[data-dept="Plumbing"] {
+  border-color: #0EA5E9;
+}
+.unified-defect-card[data-dept="Plumbing"] .card-dept-pill {
+  background: #0EA5E9;
+}
+
+.unified-defect-card[data-dept="Electrical"] {
+  border-color: #EAB308;
+}
+.unified-defect-card[data-dept="Electrical"] .card-dept-pill {
+  background: #EAB308;
+  color: #000;
+}
+
+.unified-defect-card[data-dept="Firefighting"] {
+  border-color: #EF4444;
+}
+.unified-defect-card[data-dept="Firefighting"] .card-dept-pill {
+  background: #EF4444;
+}
+
+
 /* Draggable Badges Controls Panel */
 .badges-toggle-panel {
   background: #FAFBFD;

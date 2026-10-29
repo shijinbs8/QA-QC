@@ -180,7 +180,23 @@
               </div>
             </div>
 
-            <!-- Canvas Container with Draggable Badges -->
+            <!-- Top Action Button Matching Screenshot -->
+            <div style="margin-bottom: 0.75rem;">
+              <button type="button" class="btn-skydash" onclick="handlePreSubmit()" style="width: 100%; background: #10B981; color: #FFF; border-color: #10B981; font-weight: 800; font-size: 0.95rem; padding: 0.75rem; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); text-transform: uppercase; letter-spacing: 0.04em;">
+                <i class="fa-solid fa-floppy-disk"></i> Save To Damages Model
+              </button>
+            </div>
+
+            <!-- Tip & Status Bar Matching Screenshot -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; background: #0F172A; padding: 0.55rem 0.95rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.08);">
+              <div style="display: flex; align-items: center; gap: 0.45rem; color: #94A3B8; font-size: 0.78rem;">
+                <span style="color: #F97316;"><i class="fa-solid fa-lightbulb"></i></span>
+                <span><strong>Tip:</strong> Drag the Overlay Badges directly over the photo canvas</span>
+              </div>
+              <span style="font-size: 0.68rem; font-weight: 800; color: #10B981; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 7px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em;">CANVAS READY</span>
+            </div>
+
+            <!-- Canvas Container with Unified Overlay Badge -->
             <div class="canvas-container-relative" id="canvasWrapper">
               <!-- HTML5 Canvas -->
               <canvas id="markupCanvas"></canvas>
@@ -198,36 +214,21 @@
               </div>
 
               <!-- ============================================================
-                   Draggable Text Badge Overlays Directly Over the Image
+                   HIGH-TECH UNIFIED DEFECT OVERLAY CARD (SCREENSHOT MATCHING)
                    ============================================================ -->
-              <!-- Badge 1: Floor -->
-              <div class="draggable-badge badge-floor-tag" id="badgeFloor" style="left: 20%; top: 15%; display: none;" title="Drag to reposition badge">
-                <i class="fa-solid fa-stairs badge-icon" style="color: var(--skydash-primary);"></i>
-                <span id="badgeFloorText">Floor: Level 14</span>
-              </div>
-
-              <!-- Badge 2: Apartment / Zone -->
-              <div class="draggable-badge badge-zone-tag" id="badgeZone" style="left: 20%; top: 25%; display: none;" title="Drag to reposition badge">
-                <i class="fa-solid fa-door-open badge-icon" style="color: var(--skydash-warning);"></i>
-                <span id="badgeZoneText">Zone: Apt 1402 Ceiling Void</span>
-              </div>
-
-              <!-- Badge 3: Department / Trade -->
-              <div class="draggable-badge badge-dept-tag" id="badgeDept" style="left: 80%; top: 15%; display: none;" title="Drag to reposition badge">
-                <i class="fa-solid fa-layer-group badge-icon" style="color: var(--dept-hvac);"></i>
-                <span id="badgeDeptText">Trade: HVAC</span>
-              </div>
-
-              <!-- Badge 4: Fault Description -->
-              <div class="draggable-badge badge-desc-tag" id="badgeDesc" style="left: 50%; top: 85%; display: none;" title="Drag to reposition badge">
-                <i class="fa-solid fa-triangle-exclamation badge-icon" style="color: var(--skydash-danger);"></i>
-                <span id="badgeDescText">Defect: FCU duct loose at collar</span>
-              </div>
-
-              <!-- Badge 5: Date Stamp -->
-              <div class="draggable-badge badge-date-tag" id="badgeDate" style="left: 80%; top: 85%; display: none;" title="Drag to reposition badge">
-                <i class="fa-solid fa-calendar badge-icon" style="color: var(--skydash-success);"></i>
-                <span id="badgeDateText">Date: 2026-10-27</span>
+              <div class="unified-defect-card" id="unifiedDefectCard" data-dept="HVAC" style="left: 20px; top: 20px; display: none;" title="Drag to position overlay badge anywhere over the photo">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; gap: 0.5rem;">
+                  <span class="card-dept-pill" id="cardDeptPill" style="color: #FFF; font-weight: 800; font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;">HVAC</span>
+                  <span style="color: #F59E0B; font-size: 0.74rem; font-weight: 800; display: flex; align-items: center; gap: 3px; font-family: 'JetBrains Mono', monospace;">
+                    <i class="fa-solid fa-location-dot"></i> <span id="cardLocationText">FL 14 / APT 1402</span>
+                  </span>
+                </div>
+                <div id="cardDescText" style="color: #FFFFFF; font-size: 0.86rem; font-weight: 800; line-height: 1.35; margin: 0 0 7px 0; word-break: break-word;">
+                  Conduit connection loose at junction box
+                </div>
+                <div style="color: #94A3B8; font-size: 0.7rem; font-weight: 600; display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace;">
+                  <i class="fa-regular fa-clock"></i> <span id="cardTimestampText">2026-10-29 08:32</span>
+                </div>
               </div>
             </div>
           </div>
@@ -242,20 +243,24 @@
             </div>
 
             <div style="display: flex; gap: 0.85rem; flex-wrap: wrap;">
-              <label class="badge-toggle-chip">
-                <input type="checkbox" id="chkFloor" checked onchange="toggleBadge('badgeFloor', this.checked)"> Floor
+              <label class="badge-toggle-chip" style="background: rgba(249, 115, 22, 0.15); border: 1.5px solid #F97316; font-weight: 800; color: #EA580C;">
+                <input type="checkbox" id="chkUnifiedCard" checked onchange="toggleBadge('unifiedDefectCard', this.checked)">
+                <i class="fa-solid fa-id-card"></i> Overlay Defect Card (Screenshot Style)
               </label>
               <label class="badge-toggle-chip">
-                <input type="checkbox" id="chkZone" checked onchange="toggleBadge('badgeZone', this.checked)"> Apartment / Zone
+                <input type="checkbox" id="chkFloor" onchange="toggleBadge('badgeFloor', this.checked)"> Floor Pill
               </label>
               <label class="badge-toggle-chip">
-                <input type="checkbox" id="chkDept" checked onchange="toggleBadge('badgeDept', this.checked)"> Department
+                <input type="checkbox" id="chkZone" onchange="toggleBadge('badgeZone', this.checked)"> Apartment Pill
               </label>
               <label class="badge-toggle-chip">
-                <input type="checkbox" id="chkDesc" checked onchange="toggleBadge('badgeDesc', this.checked)"> Fault Description
+                <input type="checkbox" id="chkDept" onchange="toggleBadge('badgeDept', this.checked)"> Dept Pill
               </label>
               <label class="badge-toggle-chip">
-                <input type="checkbox" id="chkDate" checked onchange="toggleBadge('badgeDate', this.checked)"> Date Stamp
+                <input type="checkbox" id="chkDesc" onchange="toggleBadge('badgeDesc', this.checked)"> Description Pill
+              </label>
+              <label class="badge-toggle-chip">
+                <input type="checkbox" id="chkDate" onchange="toggleBadge('badgeDate', this.checked)"> Date Pill
               </label>
             </div>
           </div>
@@ -373,11 +378,12 @@ const MAX_UNDO = 15;
 
 // Draggable Badges Positions (in percentages relative to canvas)
 let badgePositions = {
-  badgeFloor: { x: 22, y: 15, visible: true },
-  badgeZone: { x: 22, y: 25, visible: true },
-  badgeDept: { x: 78, y: 15, visible: true },
-  badgeDesc: { x: 50, y: 85, visible: true },
-  badgeDate: { x: 78, y: 85, visible: true }
+  unifiedDefectCard: { x: 5, y: 5, visible: true },
+  badgeFloor: { x: 22, y: 15, visible: false },
+  badgeZone: { x: 22, y: 25, visible: false },
+  badgeDept: { x: 78, y: 15, visible: false },
+  badgeDesc: { x: 50, y: 85, visible: false },
+  badgeDate: { x: 78, y: 85, visible: false }
 };
 
 // Form element bindings
@@ -388,18 +394,28 @@ const inputDesc = document.getElementById('id_faults_description');
 const inputStatus = document.getElementById('id_status');
 
 function updateBadgeTexts() {
-  const fl = inputFloor ? inputFloor.value || '1' : '1';
-  const zn = inputZone ? inputZone.value || 'General Zone' : 'General Zone';
+  const fl = inputFloor ? inputFloor.value || '14' : '14';
+  const zn = inputZone ? inputZone.value || 'APT 1402' : 'APT 1402';
   const dp = inputDept ? inputDept.value || 'HVAC' : 'HVAC';
-  const ds = inputDesc ? (inputDesc.value || 'Defect Observation') : 'Defect Observation';
+  const ds = inputDesc ? (inputDesc.value || 'Conduit connection loose at junction box') : 'Conduit connection loose at junction box';
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 5);
 
-  document.getElementById('badgeFloorText').textContent = `Level ${fl}`;
-  document.getElementById('badgeZoneText').textContent = zn;
-  document.getElementById('badgeDeptText').textContent = dp;
-  document.getElementById('badgeDescText').textContent = ds.slice(0, 36) + (ds.length > 36 ? '...' : '');
-  document.getElementById('badgeDateText').textContent = dateStr;
+  const card = document.getElementById('unifiedDefectCard');
+  if (card) {
+    card.setAttribute('data-dept', dp);
+    const pill = document.getElementById('cardDeptPill');
+    if (pill) pill.textContent = dp;
+
+    const loc = document.getElementById('cardLocationText');
+    if (loc) loc.textContent = `FL ${fl} / ${zn}`;
+
+    const desc = document.getElementById('cardDescText');
+    if (desc) desc.textContent = ds;
+
+    const ts = document.getElementById('cardTimestampText');
+    if (ts) ts.textContent = dateStr;
+  }
 }
 
 [inputFloor, inputZone, inputDept, inputDesc].forEach(el => {
@@ -467,12 +483,16 @@ function initCanvasWithImage(img) {
   placeholder.style.display = 'none';
   badgeControlsPanel.style.display = 'flex';
 
-  // Show badges
+  // Show badges and unified defect overlay card
   Object.keys(badgePositions).forEach(id => {
     const el = document.getElementById(id);
-    if (el && badgePositions[id].visible) {
-      el.style.display = 'flex';
-      positionBadgeElement(el, badgePositions[id].x, badgePositions[id].y);
+    if (el) {
+      if (badgePositions[id].visible) {
+        el.style.display = (id === 'unifiedDefectCard') ? 'block' : 'flex';
+        positionBadgeElement(el, badgePositions[id].x, badgePositions[id].y);
+      } else {
+        el.style.display = 'none';
+      }
     }
   });
 
@@ -689,26 +709,24 @@ function makeBadgeDraggable(badgeId) {
   badge.addEventListener('touchstart', onDragStart, { passive: false });
 }
 
-['badgeFloor', 'badgeZone', 'badgeDept', 'badgeDesc', 'badgeDate'].forEach(makeBadgeDraggable);
+['badgeFloor', 'badgeZone', 'badgeDept', 'badgeDesc', 'badgeDate', 'unifiedDefectCard'].forEach(makeBadgeDraggable);
 
 function toggleBadge(badgeId, isVisible) {
-  badgePositions[badgeId].visible = isVisible;
+  if (badgePositions[badgeId]) {
+    badgePositions[badgeId].visible = isVisible;
+  }
   const el = document.getElementById(badgeId);
   if (el) {
-    el.style.display = isVisible ? 'flex' : 'none';
+    el.style.display = isVisible ? (badgeId === 'unifiedDefectCard' ? 'block' : 'flex') : 'none';
   }
 }
 
 // ==========================================================================
-// Live Interactive Preview Modal
+// Live Interactive Preview Modal & Canvas Baking
 // ==========================================================================
 
-function openPreviewModal() {
-  if (!baseImage) {
-    showToast('Please capture or upload an inspection photo first.', 'error');
-    return;
-  }
-
+function bakeCanvasImage() {
+  if (!baseImage) return null;
   updateBadgeTexts();
 
   // Create an offscreen canvas to bake drawing + badges into composite image
@@ -720,12 +738,129 @@ function openPreviewModal() {
   // 1. Draw annotated markup canvas
   bCtx.drawImage(canvas, 0, 0);
 
-  // 2. Bake active draggable text badges directly into image
   const wrapperRect = wrapper.getBoundingClientRect();
-  const scale = canvas.width / wrapperRect.width;
+  const scale = canvas.width / (wrapperRect.width || canvas.width);
 
+  // 2. Bake High-Tech Unified Defect Overlay Card (Screenshot Matching)
+  if (badgePositions.unifiedDefectCard && badgePositions.unifiedDefectCard.visible) {
+    const cardX = (badgePositions.unifiedDefectCard.x / 100) * canvas.width;
+    const cardY = (badgePositions.unifiedDefectCard.y / 100) * canvas.height;
+
+    const dp = inputDept ? (inputDept.value || 'HVAC') : 'HVAC';
+    const fl = inputFloor ? (inputFloor.value || '14') : '14';
+    const zn = inputZone ? (inputZone.value || 'APT 1402') : 'APT 1402';
+    const ds = inputDesc ? (inputDesc.value || 'Conduit connection loose at junction box') : 'Conduit connection loose at junction box';
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 5);
+
+    // Accent color by department
+    let deptColor = '#F97316'; // HVAC orange
+    if (dp === 'Plumbing') deptColor = '#0EA5E9'; // Sky blue
+    else if (dp === 'Electrical') deptColor = '#EAB308'; // Amber
+    else if (dp === 'Firefighting') deptColor = '#EF4444'; // Red
+
+    const cardW = Math.max(260, Math.round(320 * scale));
+    const pad = Math.round(14 * scale);
+    const radius = Math.round(12 * scale);
+
+    // Measure text lines for description
+    const descFontSize = Math.max(12, Math.round(15 * scale));
+    bCtx.font = '800 ' + descFontSize + 'px Inter, system-ui, sans-serif';
+    const maxDescW = cardW - (pad * 2);
+    const words = ds.split(/\s+/);
+    let lines = [];
+    let curLine = '';
+    for (let i = 0; i < words.length; i++) {
+      const testLine = curLine ? (curLine + ' ' + words[i]) : words[i];
+      if (bCtx.measureText(testLine).width > maxDescW) {
+        if (curLine) lines.push(curLine);
+        curLine = words[i];
+      } else {
+        curLine = testLine;
+      }
+    }
+    if (curLine) lines.push(curLine);
+    if (lines.length > 3) lines = lines.slice(0, 3);
+
+    const row1H = Math.round(20 * scale);
+    const descLineH = Math.round(19 * scale);
+    const descTotalH = Math.max(descLineH, lines.length * descLineH);
+    const row3H = Math.round(16 * scale);
+    const gap = Math.round(8 * scale);
+    const cardH = (pad * 2) + row1H + gap + descTotalH + gap + row3H;
+
+    bCtx.save();
+    // Card background with dark blur aesthetic
+    bCtx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+    bCtx.shadowBlur = 16 * scale;
+    bCtx.shadowOffsetY = 6 * scale;
+    bCtx.fillStyle = 'rgba(24, 27, 36, 0.94)';
+    bCtx.beginPath();
+    bCtx.roundRect(cardX, cardY, cardW, cardH, radius);
+    bCtx.fill();
+    bCtx.shadowColor = 'transparent';
+
+    // Glowing border in department accent
+    bCtx.strokeStyle = deptColor;
+    bCtx.lineWidth = Math.max(2, 2.5 * scale);
+    bCtx.stroke();
+
+    // Row 1: Dept pill & location
+    const r1CenterY = cardY + pad + (row1H / 2);
+    // Dept pill
+    const pillFontSize = Math.max(10, Math.round(11 * scale));
+    bCtx.font = '800 ' + pillFontSize + 'px Inter, sans-serif';
+    const pillText = dp.toUpperCase();
+    const pillTextW = bCtx.measureText(pillText).width;
+    const pillPadX = Math.round(8 * scale);
+    const pillH = Math.round(18 * scale);
+    const pillW = pillTextW + (pillPadX * 2);
+    const pillX = cardX + pad;
+    const pillY = r1CenterY - (pillH / 2);
+
+    bCtx.fillStyle = deptColor;
+    bCtx.beginPath();
+    bCtx.roundRect(pillX, pillY, pillW, pillH, Math.round(4 * scale));
+    bCtx.fill();
+
+    bCtx.fillStyle = (dp === 'Electrical') ? '#000000' : '#FFFFFF';
+    bCtx.textAlign = 'center';
+    bCtx.textBaseline = 'middle';
+    bCtx.fillText(pillText, pillX + (pillW / 2), r1CenterY);
+
+    // Location text (right-aligned in amber)
+    const locFontSize = Math.max(11, Math.round(12.5 * scale));
+    bCtx.font = '800 ' + locFontSize + 'px "JetBrains Mono", monospace';
+    bCtx.fillStyle = '#F59E0B';
+    bCtx.textAlign = 'right';
+    bCtx.textBaseline = 'middle';
+    bCtx.fillText(`FL ${fl} / ${zn}`, cardX + cardW - pad, r1CenterY);
+
+    // Row 2: Description text in white
+    bCtx.font = '800 ' + descFontSize + 'px Inter, system-ui, sans-serif';
+    bCtx.fillStyle = '#FFFFFF';
+    bCtx.textAlign = 'left';
+    bCtx.textBaseline = 'top';
+    let lineY = cardY + pad + row1H + gap;
+    lines.forEach(lineStr => {
+      bCtx.fillText(lineStr, cardX + pad, lineY);
+      lineY += descLineH;
+    });
+
+    // Row 3: Timestamp
+    const tsFontSize = Math.max(10, Math.round(11 * scale));
+    bCtx.font = '600 ' + tsFontSize + 'px "JetBrains Mono", monospace';
+    bCtx.fillStyle = '#94A3B8';
+    bCtx.textAlign = 'left';
+    bCtx.textBaseline = 'bottom';
+    bCtx.fillText(`🕒 ${dateStr}`, cardX + pad, cardY + cardH - pad);
+
+    bCtx.restore();
+  }
+
+  // 3. Bake any active individual pill badges if enabled
   Object.keys(badgePositions).forEach(id => {
-    if (!badgePositions[id].visible) return;
+    if (id === 'unifiedDefectCard' || !badgePositions[id].visible) return;
     const el = document.getElementById(id);
     if (!el) return;
 
@@ -764,6 +899,27 @@ function openPreviewModal() {
   // Extract base64
   const bakedBase64 = bakeCanvas.toDataURL('image/jpeg', 0.92);
   document.getElementById('id_annotated_image_base64').value = bakedBase64;
+  document.getElementById('id_overlay_positions_raw').value = JSON.stringify(badgePositions);
+  return bakedBase64;
+}
+
+function handlePreSubmit() {
+  if (!baseImage) {
+    showToast('Please capture or upload an inspection photo first.', 'error');
+    return;
+  }
+  bakeCanvasImage();
+  document.getElementById('defectInspectionForm').submit();
+}
+
+function openPreviewModal() {
+  if (!baseImage) {
+    showToast('Please capture or upload an inspection photo first.', 'error');
+    return;
+  }
+
+  const bakedBase64 = bakeCanvasImage();
+  if (!bakedBase64) return;
 
   // Set modal previews
   document.getElementById('previewBakedImage').src = bakedBase64;
@@ -774,9 +930,6 @@ function openPreviewModal() {
   document.getElementById('summaryLocationText').textContent = `Level ${inputFloor.value || '1'} (${inputZone.value || 'General Area'})`;
   document.getElementById('summaryStatusText').textContent = inputStatus.value || 'Pending Clearance';
   document.getElementById('summaryDescText').textContent = inputDesc.value || 'No detailed fault description entered.';
-
-  // Save metadata to overlay_positions JSONField
-  document.getElementById('id_overlay_positions_raw').value = JSON.stringify(badgePositions);
 
   // Show modal
   openModal('previewInspectionModal');

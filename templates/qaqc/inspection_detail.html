@@ -42,6 +42,9 @@
         <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" onclick="updateStatus('Pending Clearance')">
           <i class="fa-solid fa-clock-rotate-left"></i> Set Pending
         </button>
+        <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="color: var(--skydash-danger); border-color: #ffd2d2;" onclick="openModal('modalDeleteInspectionDetail')" title="Delete this defect record">
+          <i class="fa-solid fa-trash-can"></i> Delete
+        </button>
       </div>
     </div>
   </div>
@@ -274,4 +277,69 @@ async function updateStatus(newStatus) {
 
 document.addEventListener('DOMContentLoaded', renderDetailMarkers);
 </script>
+
+<!-- Modal: Delete Defect Inspection (Password Protected) -->
+<div class="mep-modal-backdrop" id="modalDeleteInspectionDetail">
+  <div class="mep-modal" style="max-width: 500px;">
+    <div class="skydash-card-header" style="background: #FFF5F5; border-bottom: 1px solid #FFD2D2; padding: 1.15rem 1.4rem;">
+      <div>
+        <h3 class="skydash-card-title" style="color: var(--skydash-danger); margin: 0; font-size: 1.15rem;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Delete Defect Inspection #{{ inspection.id }}</span>
+        </h3>
+        <span style="font-size: 0.74rem; color: #b91c1c; margin-top: 2px; display: block;">
+          Irreversible Action &bull; Password Verification Required
+        </span>
+      </div>
+      <button type="button" onclick="closeModal('modalDeleteInspectionDetail')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+
+    <form method="post" action="{% url 'inspection_delete' inspection.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'inspections_list' %}">
+      <div class="skydash-card-body" style="padding: 1.35rem;">
+        
+        <p style="font-size: 0.86rem; color: var(--text-dark); margin: 0 0 1rem 0; line-height: 1.5;">
+          Are you sure you want to permanently delete Defect Inspection #{{ inspection.id }} ({{ inspection.department }} - {{ inspection.project.name }})?
+        </p>
+
+        <!-- Record Details Summary Box -->
+        <div style="background: #FFF5F5; border: 1px solid #FFD2D2; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.15rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; font-size: 0.78rem;">
+            <div>
+              <span style="color: #64748b;">Discipline:</span>
+              <strong style="color: var(--text-dark);">{{ inspection.department }}</strong>
+            </div>
+            <div>
+              <span style="color: #64748b;">Clearance Status:</span>
+              <strong style="color: var(--skydash-danger);">{{ inspection.status }}</strong>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <span style="color: #64748b;">Location:</span>
+              <strong style="color: var(--text-dark);">Level {{ inspection.floor_number }}{% if inspection.apartment_number %} ({{ inspection.apartment_number }}){% endif %}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Password Confirmation Input -->
+        <div style="margin-bottom: 0.5rem;">
+          <label class="form-label" style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">
+            <i class="fa-solid fa-lock"></i> Enter Your Password to Authorize Deletion <span style="color: var(--skydash-danger);">*</span>
+          </label>
+          <input type="password" name="password" class="form-control" placeholder="Enter your current login password" required autocomplete="current-password">
+          <div style="font-size: 0.72rem; color: var(--text-body); margin-top: 0.3rem;">
+            This inspection and its annotated photos will be permanently removed.
+          </div>
+        </div>
+
+      </div>
+      <div style="padding: 1rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.65rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="closeModal('modalDeleteInspectionDetail')">Cancel</button>
+        <button type="submit" class="btn-skydash btn-skydash-primary" style="background: var(--skydash-danger); border-color: var(--skydash-danger); font-weight: 800;">
+          <i class="fa-solid fa-trash-can"></i> Confirm & Delete Inspection
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}

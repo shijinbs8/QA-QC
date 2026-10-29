@@ -349,4 +349,82 @@ class FloorApartmentGenerationTests(TestCase):
         self.assertLessEqual(max(saved_img.width, saved_img.height), 1920)
         self.assertEqual(saved_img.format, 'WEBP')
 
+    def test_inspection_delete_requires_password(self):
+        """Deleting a defect inspection strictly requires the user's login password."""
+        res = create_floor_with_apartments(self.project, "Floor 25", Floor.FLOOR_TYPE_TYPICAL, 2)
+        floor = res['floor']
+        room = floor.rooms.first()
+
+        insp = DefectInspection.objects.create(
+            project=self.project,
+            floor=floor,
+            room=room,
+            department=DefectInspection.DEPARTMENT_ELECTRICAL,
+            faults_description="Exposed DB cables",
+            status=DefectInspection.STATUS_NCR
+        )
+        insp_id = insp.id
+
+        # 1. Attempt delete with wrong password -> MUST fail
+        resp_wrong = self.client.post(reverse('inspection_delete', args=[insp_id]), {
+            'password': 'badpassword'
+        })
+        self.assertEqual(resp_wrong.status_code, 302)
+        self.assertTrue(DefectInspection.objects.filter(id=insp_id).exists())
+
+        # 2. Attempt delete with correct password -> MUST succeed
+        resp_ok = self.client.post(reverse('inspection_delete', args=[insp_id]), {
+            'password': 'password123'
+        })
+        self.assertEqual(resp_ok.status_code, 302)
+        self.assertFalse(DefectInspection.objects.filter(id=insp_id).exists())
+
+    def test_defects_gallery_view_and_filtering(self):
+        """Tests the Defects Gallery view with floor, department, and date filters."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+        import io
+
+        # Create dummy image
+        img = Image.new('RGB', (100, 100), color='blue')
+        img_io = io.BytesIO()
+        img.save(img_io, format='JPEG')
+        img_io.seek(0)
+        uploaded = SimpleUploadedFile(name='defect_photo.jpg', content=img_io.read(), content_type='image/jpeg')
+
+        res = create_floor_with_apartments(self.project, "Floor 10", Floor.FLOOR_TYPE_TYPICAL, 2)
+        floor = res['floor']
+
+        DefectInspection.objects.create(
+            project=self.project,
+            floor=floor,
+            floor_number=10,
+            department=DefectInspection.DEPARTMENT_PLUMBING,
+            faults_description="PRV valve leaking water",
+            status=DefectInspection.STATUS_NCR,
+            original_image=uploaded
+        )
+
+        # 1. Base gallery view
+        resp = self.client.get(reverse('defects_gallery'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "PRV valve leaking water")
+
+        # 2. Filter by floor 10
+        resp_floor = self.client.get(reverse('defects_gallery'), {'floor': '10'})
+        self.assertEqual(resp_floor.status_code, 200)
+        self.assertContains(resp_floor, "Level 10")
+
+        # 3. Filter by department Plumbing
+        resp_dept = self.client.get(reverse('defects_gallery'), {'department': 'Plumbing'})
+        self.assertEqual(resp_dept.status_code, 200)
+        self.assertContains(resp_dept, "Plumbing")
+
+        # 4. Filter by date_filter today
+        resp_date = self.client.get(reverse('defects_gallery'), {'date_filter': 'today'})
+        self.assertEqual(resp_date.status_code, 200)
+        self.assertContains(resp_date, "PRV valve leaking water")
+
+
+
 

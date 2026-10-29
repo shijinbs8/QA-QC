@@ -62,6 +62,11 @@
           {% endif %}
         </a>
 
+        <a href="{% url 'defects_gallery' %}" class="nav-item-link {% if request.resolver_match.url_name == 'defects_gallery' %}active{% endif %}">
+          <i class="fa-solid fa-images"></i>
+          <span class="nav-label">Defects Gallery</span>
+        </a>
+
         <a href="{% url 'inspection_create' %}" class="nav-item-link {% if request.resolver_match.url_name == 'inspection_create' %}active{% endif %}">
           <i class="fa-solid fa-circle-plus"></i>
           <span class="nav-label">Log Defect</span>

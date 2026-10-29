@@ -1,5 +1,6 @@
 import json
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -466,6 +467,102 @@ def inspections_list_view(request):
 
 
 @login_required
+def defects_gallery_view(request):
+    """
+    Dedicated Defects Photo Gallery with multi-criteria filtering:
+    Floor-wise, Date-wise, MEP Discipline-wise, Project-wise, and Status-wise.
+    Enables multi-selection and direct 1-click sharing to WhatsApp.
+    """
+    project_id = request.GET.get('project', '').strip()
+    floor_number = request.GET.get('floor', '').strip()
+    department = request.GET.get('department', '').strip()
+    status = request.GET.get('status', '').strip()
+    date_filter = request.GET.get('date_filter', '').strip()
+    date_from = request.GET.get('date_from', '').strip()
+    date_to = request.GET.get('date_to', '').strip()
+    search = request.GET.get('q', '').strip()
+
+    # Query items that have photos
+    inspections = DefectInspection.objects.select_related('project').filter(
+        Q(original_image__isnull=False, original_image__gt='') |
+        Q(annotated_image__isnull=False, annotated_image__gt='')
+    ).order_by('-date_recorded')
+
+    # 1. Project Filter
+    if project_id and project_id != 'all':
+        inspections = inspections.filter(project_id=project_id)
+
+    # 2. Floor-wise Filter
+    if floor_number and floor_number != 'all':
+        try:
+            inspections = inspections.filter(floor_number=int(floor_number))
+        except ValueError:
+            pass
+
+    # 3. MEP-wise Filter
+    if department and department != 'all':
+        inspections = inspections.filter(department=department)
+
+    # 4. Status Filter
+    if status and status != 'all':
+        inspections = inspections.filter(status=status)
+
+    # 5. Date-wise Filter
+    now = timezone.now()
+    if date_filter == 'today':
+        inspections = inspections.filter(date_recorded__date=now.date())
+    elif date_filter == 'week':
+        week_ago = now - timezone.timedelta(days=7)
+        inspections = inspections.filter(date_recorded__gte=week_ago)
+    elif date_filter == 'month':
+        month_ago = now - timezone.timedelta(days=30)
+        inspections = inspections.filter(date_recorded__gte=month_ago)
+    elif date_filter == 'custom':
+        if date_from:
+            inspections = inspections.filter(date_recorded__date__gte=date_from)
+        if date_to:
+            inspections = inspections.filter(date_recorded__date__lte=date_to)
+
+    # 6. Search query
+    if search:
+        inspections = inspections.filter(
+            Q(faults_description__icontains=search) |
+            Q(apartment_number__icontains=search) |
+            Q(project__name__icontains=search)
+        )
+
+    # Extract distinct floors for active project or across all
+    floor_qs = DefectInspection.objects.filter(
+        Q(original_image__isnull=False, original_image__gt='') |
+        Q(annotated_image__isnull=False, annotated_image__gt='')
+    )
+    if project_id and project_id != 'all':
+        floor_qs = floor_qs.filter(project_id=project_id)
+    distinct_floors = list(floor_qs.values_list('floor_number', flat=True).distinct().order_by('floor_number'))
+
+    projects = Project.objects.all().order_by('name')
+
+    context = {
+        'page_title': 'MEP Defects Photo Gallery',
+        'inspections': inspections,
+        'projects': projects,
+        'distinct_floors': distinct_floors,
+        'selected_project': project_id,
+        'selected_floor': floor_number,
+        'selected_department': department,
+        'selected_status': status,
+        'selected_date_filter': date_filter,
+        'date_from': date_from,
+        'date_to': date_to,
+        'search_query': search,
+        'total_photos_count': inspections.count(),
+        'metrics': get_global_metrics(request.user),
+    }
+    return render(request, 'qaqc/defects_gallery.html', context)
+
+
+
+@login_required
 def inspection_create_view(request):
     if request.method == 'POST':
         form = DefectInspectionForm(request.POST, request.FILES)
@@ -830,6 +927,41 @@ def project_delete_view(request, project_id):
     project.delete()
     messages.success(request, f"Project Site '{project_name}' and all associated floors, rooms, and QA/QC records have been permanently deleted.")
     return redirect('projects_list')
+
+
+@login_required
+@require_POST
+def inspection_delete_view(request, inspection_id):
+    """
+    Deletes a defect inspection record after verifying the user's password.
+    Also cleans up associated image files from storage if present.
+    """
+    inspection = get_object_or_404(DefectInspection, pk=inspection_id)
+    password = request.POST.get('password', '').strip()
+    fallback_redirect = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('dashboard')
+
+    # 1. Require and verify user's login password
+    if not password or not request.user.check_password(password):
+        messages.error(request, "Authentication failed: Incorrect password. Defect inspection deletion cancelled.")
+        return redirect(fallback_redirect)
+
+    insp_id = inspection.id
+    dept = inspection.department
+    proj_name = inspection.project.name
+
+    # 2. Cleanup associated image files from disk/storage so no orphaned files remain
+    try:
+        if inspection.original_image:
+            inspection.original_image.delete(save=False)
+        if inspection.annotated_image:
+            inspection.annotated_image.delete(save=False)
+    except Exception:
+        pass
+
+    inspection.delete()
+    messages.success(request, f"Defect Inspection #{insp_id} ({dept} - {proj_name}) has been permanently deleted.")
+    return redirect(fallback_redirect)
+
 
 
 @login_required

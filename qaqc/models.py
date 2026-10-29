@@ -510,7 +510,7 @@ def optimize_uploaded_image(image_field, max_dimension=1920, quality=82):
             field_name='ImageField',
             name=new_filename,
             content_type='image/webp',
-            size=sys.getsizeof(output),
+            size=len(output.getvalue()),
             charset=None
         )
     except Exception:
