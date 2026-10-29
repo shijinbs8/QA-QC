@@ -57,7 +57,7 @@
           <select name="floor" class="form-select" onchange="this.form.submit()" style="font-size: 0.82rem; padding: 0.48rem 0.75rem;">
             <option value="all" {% if not selected_floor or selected_floor == 'all' %}selected{% endif %}>All Floors</option>
             {% for fl in distinct_floors %}
-            <option value="{{ fl }}" {% if selected_floor == fl|stringformat:'s' %}selected{% endif %}>Level {{ fl }}</option>
+            <option value="{{ fl.value }}" {% if selected_floor == fl.value %}selected{% endif %}>{{ fl.label }}</option>
             {% endfor %}
           </select>
         </div>
@@ -207,7 +207,7 @@
           <input type="checkbox" class="gallery-select-checkbox" data-id="{{ item.id }}" 
                  data-dept="{{ item.department|escape }}"
                  data-project="{{ item.project.name|escape }}"
-                 data-floor="{{ item.floor_number }}"
+                 data-floor="{% if item.floor %}{{ item.floor.floor_number }}{% else %}Level {{ item.floor_number }}{% endif %}"
                  data-room="{{ item.apartment_number|default:''|escape }}"
                  data-status="{{ item.status|escape }}"
                  data-fault="{{ item.faults_description|escape }}"
@@ -232,7 +232,7 @@
       <!-- Bottom Overlaid Location Bar -->
       <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(15, 23, 42, 0.85)); padding: 1.25rem 0.85rem 0.5rem 0.85rem; display: flex; justify-content: space-between; align-items: center; color: #fff;">
         <span style="font-size: 0.75rem; font-weight: 800; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">
-          <i class="fa-solid fa-stairs"></i> Level {{ item.floor_number }}
+          <i class="fa-solid fa-stairs"></i> {% if item.floor %}{{ item.floor.floor_number }}{% else %}Level {{ item.floor_number }}{% endif %}
           {% if item.apartment_number %} &bull; {{ item.apartment_number }}{% endif %}
         </span>
         {% if item.overlay_count %}
@@ -264,8 +264,8 @@
       <!-- Card Action Buttons -->
       <div style="display: flex; gap: 0.4rem; align-items: center; padding-top: 0.65rem; border-top: 1px solid var(--border-light);">
         
-        <!-- Individual WhatsApp Share -->
-        <button type="button" class="btn-skydash btn-skydash-sm" onclick="shareSingleToWhatsApp('{{ item.id }}', '{{ item.department|escapejs }}', '{{ item.project.name|escapejs }}', '{{ item.floor_number }}', '{{ item.apartment_number|default:''|escapejs }}', '{{ item.status|escapejs }}', '{{ item.faults_description|escapejs }}', '{% if item.annotated_image %}{{ item.annotated_image.url }}{% elif item.original_image %}{{ item.original_image.url }}{% endif %}')" title="Share this defect on WhatsApp" style="background: #25D366; color: #fff; border-color: #25D366; font-size: 0.78rem; padding: 0.35rem 0.65rem;">
+        <!-- Individual WhatsApp Share with Photo -->
+        <button type="button" class="btn-skydash btn-skydash-sm" onclick="shareSingleToWhatsApp('{{ item.id }}', '{{ item.department|escapejs }}', '{{ item.project.name|escapejs }}', '{% if item.floor %}{{ item.floor.floor_number|escapejs }}{% else %}Level {{ item.floor_number }}{% endif %}', '{{ item.apartment_number|default:''|escapejs }}', '{{ item.status|escapejs }}', '{{ item.faults_description|escapejs }}', '{% if item.annotated_image %}{{ item.annotated_image.url }}{% elif item.original_image %}{{ item.original_image.url }}{% endif %}')" title="Share photo directly on WhatsApp" style="background: #25D366; color: #fff; border-color: #25D366; font-size: 0.78rem; padding: 0.35rem 0.65rem;">
           <i class="fa-brands fa-whatsapp"></i>
         </button>
 
@@ -472,11 +472,10 @@ function clearAllSelections() {
   toggleSelectAll(false);
 }
 
-// Generate Formatted WhatsApp Defect Report
+// Generate Formatted WhatsApp Defect Report (Caption without raw image URLs)
 function buildWhatsAppReportText(selectedItems) {
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const origin = window.location.origin;
 
   let text = `🚨 *MEP QA/QC DEFECT INSPECTION REPORT*\n`;
   text += `📅 *Date:* ${dateStr}\n`;
@@ -487,15 +486,8 @@ function buildWhatsAppReportText(selectedItems) {
     const numEmoji = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'][index] || `${index + 1}.`;
     text += `${numEmoji} *[${item.dept} - ${item.status}]*\n`;
     text += `🏢 *Site:* ${item.project}\n`;
-    text += `📍 *Location:* Level ${item.floor}${item.room ? ' (' + item.room + ')' : ''}\n`;
-    text += `⚠️ *Snag:* ${item.fault}\n`;
-    if (item.url) {
-      text += `📸 *Photo:* ${origin}${item.url}\n`;
-    }
-    if (item.detailUrl) {
-      text += `🔗 *Details:* ${origin}${item.detailUrl}\n`;
-    }
-    text += `\n`;
+    text += `📍 *Location:* ${item.floor}${item.room ? ' (' + item.room + ')' : ''}\n`;
+    text += `⚠️ *Snag:* ${item.fault}\n\n`;
   });
 
   text += `────────────────────\n`;
@@ -503,8 +495,77 @@ function buildWhatsAppReportText(selectedItems) {
   return text;
 }
 
+// Send actual image files with report caption to WhatsApp
+async function sendToWhatsAppWithImages(imgUrls, captionText, title = 'MEP QA/QC Defect') {
+  showToast('Preparing photo(s) for WhatsApp...', 'info');
+
+  // Step 1: Web Share API with Files (Native on Mobile: Android Chrome, iOS Safari)
+  if (navigator.canShare && imgUrls && imgUrls.length > 0) {
+    try {
+      const files = [];
+      for (let i = 0; i < imgUrls.length; i++) {
+        const u = imgUrls[i];
+        if (!u) continue;
+        const res = await fetch(u);
+        const blob = await res.blob();
+        const ext = blob.type.includes('png') ? 'png' : (blob.type.includes('webp') ? 'webp' : 'jpg');
+        files.push(new File([blob], `defect_photo_${i + 1}.${ext}`, { type: blob.type || 'image/jpeg' }));
+      }
+
+      if (files.length > 0 && navigator.canShare({ files })) {
+        await navigator.share({
+          files: files,
+          title: title,
+          text: captionText
+        });
+        showToast('Shared photo directly to WhatsApp!', 'success');
+        return;
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.warn('Native share failed, using clipboard & web fallback:', err);
+    }
+  }
+
+  // Step 2: Desktop Clipboard Fallback (Copies actual image to clipboard so user can simply press Ctrl+V / Cmd+V in WhatsApp Web)
+  if (imgUrls && imgUrls.length > 0 && imgUrls[0]) {
+    try {
+      const res = await fetch(imgUrls[0]);
+      const blob = await res.blob();
+      
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const pngBlob = await new Promise((resolve) => {
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth || img.width;
+          c.height = img.naturalHeight || img.height;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          c.toBlob((b) => resolve(b), 'image/png');
+        };
+        img.onerror = () => resolve(blob);
+        img.src = URL.createObjectURL(blob);
+      });
+
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': pngBlob })
+        ]);
+        showToast('📸 Photo copied to clipboard! Paste directly (Cmd+V / Ctrl+V) into WhatsApp.', 'success');
+      }
+    } catch (clipErr) {
+      console.warn('Clipboard write failed:', clipErr);
+    }
+  }
+
+  // Step 3: Open WhatsApp with caption report
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(captionText)}`;
+  window.open(waUrl, '_blank');
+}
+
 // Share Selected to WhatsApp
-function shareSelectedToWhatsApp() {
+async function shareSelectedToWhatsApp() {
   const checkedBoxes = document.querySelectorAll('.gallery-select-checkbox:checked');
   if (checkedBoxes.length === 0) {
     showToast('Please select at least one defect photo to share.', 'error');
@@ -524,28 +585,26 @@ function shareSelectedToWhatsApp() {
   }));
 
   const text = buildWhatsAppReportText(items);
-  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-  window.open(waUrl, '_blank');
+  const origin = window.location.origin;
+  const imgUrls = items.map(it => it.url ? (it.url.startsWith('http') ? it.url : (origin + it.url)) : '').filter(Boolean);
+
+  await sendToWhatsAppWithImages(imgUrls, text, `MEP Snag Report (${items.length} Defects)`);
 }
 
-// Share Single Defect to WhatsApp
-function shareSingleToWhatsApp(id, dept, project, floor, room, status, fault, imgUrl) {
+// Share Single Defect to WhatsApp (Actual Image)
+async function shareSingleToWhatsApp(id, dept, project, floor, room, status, fault, imgUrl) {
   const origin = window.location.origin;
   let text = `🚨 *MEP QA/QC DEFECT SNAG REPORT*\n`;
   text += `────────────────────\n`;
   text += `🔧 *Discipline:* ${dept} (${status})\n`;
   text += `🏢 *Site:* ${project}\n`;
-  text += `📍 *Location:* Level ${floor}${room ? ' (' + room + ')' : ''}\n`;
+  text += `📍 *Location:* ${floor}${room ? ' (' + room + ')' : ''}\n`;
   text += `⚠️ *Issue:* ${fault}\n`;
-  if (imgUrl) {
-    text += `📸 *Photo:* ${origin}${imgUrl}\n`;
-  }
-  text += `🔗 *Details:* ${origin}/inspections/${id}/\n`;
   text += `────────────────────\n`;
   text += `_MEP QA/QC Engineering Dashboard_`;
 
-  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-  window.open(waUrl, '_blank');
+  const fullImgUrl = imgUrl ? (imgUrl.startsWith('http') ? imgUrl : (origin + imgUrl)) : '';
+  await sendToWhatsAppWithImages(fullImgUrl ? [fullImgUrl] : [], text, `MEP Snag #${id} - ${dept}`);
 }
 
 // Copy Selected Report Text to Clipboard

@@ -1241,6 +1241,30 @@ body {
   background: #EF4444;
 }
 
+@media (max-width: 768px) {
+  .unified-defect-card {
+    min-width: 190px;
+    max-width: 270px;
+    padding: 8px 12px;
+    border-radius: 9px;
+  }
+  .unified-defect-card .card-dept-pill {
+    font-size: 0.65rem !important;
+    padding: 2px 6px !important;
+  }
+  .unified-defect-card #cardLocationText {
+    font-size: 0.68rem !important;
+  }
+  .unified-defect-card #cardDescText {
+    font-size: 0.78rem !important;
+    line-height: 1.25 !important;
+    margin-bottom: 4px !important;
+  }
+  .unified-defect-card #cardTimestampText {
+    font-size: 0.62rem !important;
+  }
+}
+
 
 /* Draggable Badges Controls Panel */
 .badges-toggle-panel {

@@ -18,7 +18,7 @@
 
       <div>
         <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--text-dark); margin: 0;">
-          {{ inspection.project.name }} &bull; Level {{ inspection.floor_number }}{% if inspection.apartment_number %} ({{ inspection.apartment_number }}){% endif %}
+          {{ inspection.project.name }} &bull; {% if inspection.floor %}{{ inspection.floor.floor_number }}{% else %}Level {{ inspection.floor_number }}{% endif %}{% if inspection.apartment_number %} ({{ inspection.apartment_number }}){% endif %}
         </h2>
         <span style="font-size: 0.78rem; color: var(--text-body);">
           Recorded {{ inspection.date_recorded|date:"F d, Y - H:i" }} UTC
@@ -41,6 +41,9 @@
         </button>
         <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" onclick="updateStatus('Pending Clearance')">
           <i class="fa-solid fa-clock-rotate-left"></i> Set Pending
+        </button>
+        <button type="button" class="btn-skydash btn-skydash-sm" style="background: #25D366; color: #fff; border-color: #25D366; font-weight: 700;" onclick="shareInspectionToWhatsApp()" title="Share photo directly on WhatsApp">
+          <i class="fa-brands fa-whatsapp"></i> Share Photo
         </button>
         <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="color: var(--skydash-danger); border-color: #ffd2d2;" onclick="openModal('modalDeleteInspectionDetail')" title="Delete this defect record">
           <i class="fa-solid fa-trash-can"></i> Delete
@@ -70,7 +73,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; font-size: 0.82rem;">
           <div style="padding: 0.75rem; background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 8px;">
             <span style="color: var(--text-body); font-size: 0.72rem; text-transform: uppercase; font-weight: 800; display: block;">Location</span>
-            <strong style="color: var(--text-dark);">Level {{ inspection.floor_number }}</strong>
+            <strong style="color: var(--text-dark);">{% if inspection.floor %}{{ inspection.floor.floor_number }}{% else %}Level {{ inspection.floor_number }}{% endif %}</strong>
             {% if inspection.apartment_number %}
             <div style="color: var(--text-body); font-size: 0.76rem;">{{ inspection.apartment_number }}</div>
             {% endif %}
@@ -273,6 +276,81 @@ async function updateStatus(newStatus) {
   } catch (err) {
     showToast('Failed to update clearance status', 'error');
   }
+}
+
+async function shareInspectionToWhatsApp() {
+  const origin = window.location.origin;
+  const imgUrl = '{% if inspection.annotated_image %}{{ inspection.annotated_image.url }}{% elif inspection.original_image %}{{ inspection.original_image.url }}{% endif %}';
+  const fullImgUrl = imgUrl ? (imgUrl.startsWith('http') ? imgUrl : (origin + imgUrl)) : '';
+  const floorName = '{% if inspection.floor %}{{ inspection.floor.floor_number|escapejs }}{% else %}Level {{ inspection.floor_number }}{% endif %}';
+  const roomName = '{{ inspection.apartment_number|default:""|escapejs }}';
+  const dept = '{{ inspection.department|escapejs }}';
+  const status = '{{ inspection.status|escapejs }}';
+  const proj = '{{ inspection.project.name|escapejs }}';
+  const fault = '{{ inspection.faults_description|escapejs }}';
+
+  let text = `🚨 *MEP QA/QC DEFECT SNAG REPORT*\n`;
+  text += `────────────────────\n`;
+  text += `🔧 *Discipline:* ${dept} (${status})\n`;
+  text += `🏢 *Site:* ${proj}\n`;
+  text += `📍 *Location:* ${floorName}${roomName ? ' (' + roomName + ')' : ''}\n`;
+  text += `⚠️ *Issue:* ${fault}\n`;
+  text += `────────────────────\n`;
+  text += `_MEP QA/QC Engineering Dashboard_`;
+
+  // 1. Mobile Web Share API with image file
+  if (fullImgUrl && navigator.canShare) {
+    try {
+      showToast('Preparing photo for WhatsApp...', 'info');
+      const res = await fetch(fullImgUrl);
+      const blob = await res.blob();
+      const ext = blob.type.includes('png') ? 'png' : (blob.type.includes('webp') ? 'webp' : 'jpg');
+      const file = new File([blob], `defect_{{ inspection.id }}.${ext}`, { type: blob.type || 'image/jpeg' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `MEP Snag #{{ inspection.id }} - ${dept}`,
+          text: text
+        });
+        showToast('Shared photo directly to WhatsApp!', 'success');
+        return;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+
+  // 2. Desktop clipboard fallback: Copy image to clipboard so user can paste into WhatsApp Web
+  if (fullImgUrl) {
+    try {
+      const res = await fetch(fullImgUrl);
+      const blob = await res.blob();
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const pngBlob = await new Promise((resolve) => {
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth || img.width;
+          c.height = img.naturalHeight || img.height;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          c.toBlob((b) => resolve(b), 'image/png');
+        };
+        img.onerror = () => resolve(blob);
+        img.src = URL.createObjectURL(blob);
+      });
+
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': pngBlob })
+        ]);
+        showToast('📸 Photo copied to clipboard! Paste directly (Cmd+V / Ctrl+V) in WhatsApp.', 'success');
+      }
+    } catch (clipErr) {}
+  }
+
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  window.open(waUrl, '_blank');
 }
 
 document.addEventListener('DOMContentLoaded', renderDetailMarkers);

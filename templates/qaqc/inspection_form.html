@@ -387,15 +387,46 @@ let badgePositions = {
 };
 
 // Form element bindings
+const selectProject = document.getElementById('id_project');
+const selectFloor = document.getElementById('id_floor');
+const selectRoom = document.getElementById('id_room');
 const inputFloor = document.getElementById('id_floor_number');
 const inputZone = document.getElementById('id_apartment_number');
 const inputDept = document.getElementById('id_department');
 const inputDesc = document.getElementById('id_faults_description');
 const inputStatus = document.getElementById('id_status');
 
+function getActiveFloorLabel() {
+  if (selectFloor && selectFloor.value && selectFloor.selectedIndex >= 0) {
+    const raw = selectFloor.options[selectFloor.selectedIndex].text;
+    const clean = raw.replace(/\s*\(\d+\s*Rooms?\)\s*$/i, '').trim();
+    if (clean && !clean.startsWith('--')) {
+      return clean;
+    }
+  }
+  if (inputFloor && inputFloor.value) {
+    return `FL ${inputFloor.value}`;
+  }
+  return 'FL 14';
+}
+
+function getActiveZoneLabel() {
+  if (selectRoom && selectRoom.value && selectRoom.selectedIndex >= 0) {
+    const raw = selectRoom.options[selectRoom.selectedIndex].text;
+    const clean = raw.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    if (clean && !clean.startsWith('--')) {
+      return clean;
+    }
+  }
+  if (inputZone && inputZone.value) {
+    return inputZone.value;
+  }
+  return 'APT 1402';
+}
+
 function updateBadgeTexts() {
-  const fl = inputFloor ? inputFloor.value || '14' : '14';
-  const zn = inputZone ? inputZone.value || 'APT 1402' : 'APT 1402';
+  const fl = getActiveFloorLabel();
+  const zn = getActiveZoneLabel();
   const dp = inputDept ? inputDept.value || 'HVAC' : 'HVAC';
   const ds = inputDesc ? (inputDesc.value || 'Conduit connection loose at junction box') : 'Conduit connection loose at junction box';
   const now = new Date();
@@ -408,7 +439,7 @@ function updateBadgeTexts() {
     if (pill) pill.textContent = dp;
 
     const loc = document.getElementById('cardLocationText');
-    if (loc) loc.textContent = `FL ${fl} / ${zn}`;
+    if (loc) loc.textContent = `${fl} / ${zn}`;
 
     const desc = document.getElementById('cardDescText');
     if (desc) desc.textContent = ds;
@@ -418,8 +449,11 @@ function updateBadgeTexts() {
   }
 }
 
-[inputFloor, inputZone, inputDept, inputDesc].forEach(el => {
-  if (el) el.addEventListener('input', updateBadgeTexts);
+[selectProject, selectFloor, selectRoom, inputFloor, inputZone, inputDept, inputDesc].forEach(el => {
+  if (el) {
+    el.addEventListener('input', updateBadgeTexts);
+    el.addEventListener('change', updateBadgeTexts);
+  }
 });
 
 // Tool selector
@@ -465,13 +499,18 @@ document.getElementById('fileInput').addEventListener('change', function (e) {
 
 // Canvas Setup
 function initCanvasWithImage(img) {
-  const maxW = 1000;
-  let w = img.width;
-  let h = img.height;
+  const maxDim = 1200;
+  let w = img.naturalWidth || img.width;
+  let h = img.naturalHeight || img.height;
 
-  if (w > maxW) {
-    h = Math.round((h * maxW) / w);
-    w = maxW;
+  if (w > maxDim || h > maxDim) {
+    if (w >= h) {
+      h = Math.round((h * maxDim) / w);
+      w = maxDim;
+    } else {
+      w = Math.round((w * maxDim) / h);
+      h = maxDim;
+    }
   }
 
   canvas.width = w;
@@ -481,6 +520,7 @@ function initCanvasWithImage(img) {
   saveCanvasState();
 
   placeholder.style.display = 'none';
+  wrapper.style.minHeight = 'auto';
   badgeControlsPanel.style.display = 'flex';
 
   // Show badges and unified defect overlay card
@@ -686,9 +726,11 @@ function makeBadgeDraggable(badgeId) {
     const newLeft = initialLeft + dx;
     const newTop = initialTop + dy;
 
-    // Convert to percentage
-    const xPct = Math.max(5, Math.min(95, (newLeft / wrapperRect.width) * 100));
-    const yPct = Math.max(5, Math.min(95, (newTop / wrapperRect.height) * 100));
+    // Convert to percentage, safely clamped inside wrapper boundaries
+    const maxXPct = Math.max(5, Math.min(95, 100 - ((badge.offsetWidth / (wrapperRect.width || 1)) * 100)));
+    const maxYPct = Math.max(5, Math.min(95, 100 - ((badge.offsetHeight / (wrapperRect.height || 1)) * 100)));
+    const xPct = Math.max(2, Math.min(maxXPct, (newLeft / (wrapperRect.width || 1)) * 100));
+    const yPct = Math.max(2, Math.min(maxYPct, (newTop / (wrapperRect.height || 1)) * 100));
 
     badge.style.left = xPct.toFixed(1) + '%';
     badge.style.top = yPct.toFixed(1) + '%';
@@ -738,17 +780,16 @@ function bakeCanvasImage() {
   // 1. Draw annotated markup canvas
   bCtx.drawImage(canvas, 0, 0);
 
-  const wrapperRect = wrapper.getBoundingClientRect();
-  const scale = canvas.width / (wrapperRect.width || canvas.width);
+  // Resolution-normalized scaling: based strictly on image canvas resolution (1000px reference)
+  // Guarantees crisp, beautifully proportioned output on phones and desktop alike.
+  const scale = Math.max(0.65, Math.min(1.4, canvas.width / 1000));
+  const margin = Math.round(12 * scale);
 
   // 2. Bake High-Tech Unified Defect Overlay Card (Screenshot Matching)
   if (badgePositions.unifiedDefectCard && badgePositions.unifiedDefectCard.visible) {
-    const cardX = (badgePositions.unifiedDefectCard.x / 100) * canvas.width;
-    const cardY = (badgePositions.unifiedDefectCard.y / 100) * canvas.height;
-
     const dp = inputDept ? (inputDept.value || 'HVAC') : 'HVAC';
-    const fl = inputFloor ? (inputFloor.value || '14') : '14';
-    const zn = inputZone ? (inputZone.value || 'APT 1402') : 'APT 1402';
+    const fl = getActiveFloorLabel();
+    const zn = getActiveZoneLabel();
     const ds = inputDesc ? (inputDesc.value || 'Conduit connection loose at junction box') : 'Conduit connection loose at junction box';
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 5);
@@ -759,12 +800,32 @@ function bakeCanvasImage() {
     else if (dp === 'Electrical') deptColor = '#EAB308'; // Amber
     else if (dp === 'Firefighting') deptColor = '#EF4444'; // Red
 
-    const cardW = Math.max(260, Math.round(320 * scale));
-    const pad = Math.round(14 * scale);
-    const radius = Math.round(12 * scale);
+    const pad = Math.round(12 * scale);
+    const radius = Math.round(10 * scale);
+    const pillFontSize = Math.max(10, Math.round(11 * scale));
+    const locFontSize = Math.max(10, Math.round(11.5 * scale));
+    const descFontSize = Math.max(12, Math.round(14 * scale));
+    const tsFontSize = Math.max(10, Math.round(11 * scale));
+
+    // Department pill dimensions
+    bCtx.font = '800 ' + pillFontSize + 'px Inter, sans-serif';
+    const pillText = dp.toUpperCase();
+    const pillTextW = bCtx.measureText(pillText).width;
+    const pillPadX = Math.round(7 * scale);
+    const pillH = Math.round(18 * scale);
+    const pillW = pillTextW + (pillPadX * 2);
+
+    // Location text dimensions
+    bCtx.font = '800 ' + locFontSize + 'px "JetBrains Mono", monospace';
+    const locText = `📍 ${fl} / ${zn}`;
+    const locTextW = bCtx.measureText(locText).width;
+
+    // Card width bounded to canvas width
+    let cardW = Math.max(Math.round(350 * scale), pillW + locTextW + (pad * 3));
+    const maxCardW = canvas.width - (margin * 2);
+    if (cardW > maxCardW) cardW = maxCardW;
 
     // Measure text lines for description
-    const descFontSize = Math.max(12, Math.round(15 * scale));
     bCtx.font = '800 ' + descFontSize + 'px Inter, system-ui, sans-serif';
     const maxDescW = cardW - (pad * 2);
     const words = ds.split(/\s+/);
@@ -782,18 +843,34 @@ function bakeCanvasImage() {
     if (curLine) lines.push(curLine);
     if (lines.length > 3) lines = lines.slice(0, 3);
 
-    const row1H = Math.round(20 * scale);
-    const descLineH = Math.round(19 * scale);
+    const row1H = Math.round(18 * scale);
+    const descLineH = Math.round(18 * scale);
     const descTotalH = Math.max(descLineH, lines.length * descLineH);
-    const row3H = Math.round(16 * scale);
-    const gap = Math.round(8 * scale);
+    const row3H = Math.round(15 * scale);
+    const gap = Math.round(7 * scale);
     const cardH = (pad * 2) + row1H + gap + descTotalH + gap + row3H;
+
+    // Safely clamp card position within canvas boundaries
+    let cardX = (badgePositions.unifiedDefectCard.x / 100) * canvas.width;
+    let cardY = (badgePositions.unifiedDefectCard.y / 100) * canvas.height;
+    if (cardX + cardW > canvas.width - margin) {
+      cardX = Math.max(margin, canvas.width - cardW - margin);
+    }
+    if (cardX < margin) {
+      cardX = margin;
+    }
+    if (cardY + cardH > canvas.height - margin) {
+      cardY = Math.max(margin, canvas.height - cardH - margin);
+    }
+    if (cardY < margin) {
+      cardY = margin;
+    }
 
     bCtx.save();
     // Card background with dark blur aesthetic
     bCtx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-    bCtx.shadowBlur = 16 * scale;
-    bCtx.shadowOffsetY = 6 * scale;
+    bCtx.shadowBlur = 14 * scale;
+    bCtx.shadowOffsetY = 5 * scale;
     bCtx.fillStyle = 'rgba(24, 27, 36, 0.94)';
     bCtx.beginPath();
     bCtx.roundRect(cardX, cardY, cardW, cardH, radius);
@@ -802,19 +879,11 @@ function bakeCanvasImage() {
 
     // Glowing border in department accent
     bCtx.strokeStyle = deptColor;
-    bCtx.lineWidth = Math.max(2, 2.5 * scale);
+    bCtx.lineWidth = Math.max(2, 2.2 * scale);
     bCtx.stroke();
 
     // Row 1: Dept pill & location
     const r1CenterY = cardY + pad + (row1H / 2);
-    // Dept pill
-    const pillFontSize = Math.max(10, Math.round(11 * scale));
-    bCtx.font = '800 ' + pillFontSize + 'px Inter, sans-serif';
-    const pillText = dp.toUpperCase();
-    const pillTextW = bCtx.measureText(pillText).width;
-    const pillPadX = Math.round(8 * scale);
-    const pillH = Math.round(18 * scale);
-    const pillW = pillTextW + (pillPadX * 2);
     const pillX = cardX + pad;
     const pillY = r1CenterY - (pillH / 2);
 
@@ -824,17 +893,17 @@ function bakeCanvasImage() {
     bCtx.fill();
 
     bCtx.fillStyle = (dp === 'Electrical') ? '#000000' : '#FFFFFF';
+    bCtx.font = '800 ' + pillFontSize + 'px Inter, sans-serif';
     bCtx.textAlign = 'center';
     bCtx.textBaseline = 'middle';
     bCtx.fillText(pillText, pillX + (pillW / 2), r1CenterY);
 
     // Location text (right-aligned in amber)
-    const locFontSize = Math.max(11, Math.round(12.5 * scale));
     bCtx.font = '800 ' + locFontSize + 'px "JetBrains Mono", monospace';
     bCtx.fillStyle = '#F59E0B';
     bCtx.textAlign = 'right';
     bCtx.textBaseline = 'middle';
-    bCtx.fillText(`FL ${fl} / ${zn}`, cardX + cardW - pad, r1CenterY);
+    bCtx.fillText(locText, cardX + cardW - pad, r1CenterY);
 
     // Row 2: Description text in white
     bCtx.font = '800 ' + descFontSize + 'px Inter, system-ui, sans-serif';
@@ -848,7 +917,6 @@ function bakeCanvasImage() {
     });
 
     // Row 3: Timestamp
-    const tsFontSize = Math.max(10, Math.round(11 * scale));
     bCtx.font = '600 ' + tsFontSize + 'px "JetBrains Mono", monospace';
     bCtx.fillStyle = '#94A3B8';
     bCtx.textAlign = 'left';
@@ -865,24 +933,28 @@ function bakeCanvasImage() {
     if (!el) return;
 
     const text = el.innerText.trim();
-    const x = (badgePositions[id].x / 100) * canvas.width;
-    const y = (badgePositions[id].y / 100) * canvas.height;
+    let x = (badgePositions[id].x / 100) * canvas.width;
+    let y = (badgePositions[id].y / 100) * canvas.height;
 
     // Draw stylish pill badge onto canvas
-    bCtx.font = 'bold ' + Math.max(14, Math.round(16 * scale)) + 'px Manrope, sans-serif';
-    const paddingX = 14 * scale;
-    const paddingY = 8 * scale;
+    bCtx.font = 'bold ' + Math.max(13, Math.round(14 * scale)) + 'px Manrope, sans-serif';
+    const paddingX = Math.round(12 * scale);
     const textWidth = bCtx.measureText(text).width;
     const boxW = textWidth + paddingX * 2;
-    const boxH = 30 * scale;
-    const boxX = x - boxW / 2;
-    const boxY = y - boxH / 2;
+    const boxH = Math.round(28 * scale);
+    let boxX = x - boxW / 2;
+    let boxY = y - boxH / 2;
+
+    if (boxX + boxW > canvas.width - margin) boxX = canvas.width - boxW - margin;
+    if (boxX < margin) boxX = margin;
+    if (boxY + boxH > canvas.height - margin) boxY = canvas.height - boxH - margin;
+    if (boxY < margin) boxY = margin;
 
     // Pill background
     bCtx.save();
     bCtx.fillStyle = 'rgba(17, 24, 39, 0.9)';
     bCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-    bCtx.lineWidth = 2 * scale;
+    bCtx.lineWidth = Math.max(1.5, 2 * scale);
     bCtx.beginPath();
     bCtx.roundRect(boxX, boxY, boxW, boxH, boxH / 2);
     bCtx.fill();
@@ -892,7 +964,7 @@ function bakeCanvasImage() {
     bCtx.fillStyle = '#FFFFFF';
     bCtx.textBaseline = 'middle';
     bCtx.textAlign = 'center';
-    bCtx.fillText(text, x, y);
+    bCtx.fillText(text, boxX + (boxW / 2), boxY + (boxH / 2));
     bCtx.restore();
   });
 
@@ -939,12 +1011,6 @@ function submitFinalInspectionForm() {
   document.getElementById('defectInspectionForm').submit();
 }
 
-// ==========================================================================
-// Phase 5: Dynamic Floor & Room Selection Cascade
-// ==========================================================================
-const selectProject = document.getElementById('id_project');
-const selectFloor = document.getElementById('id_floor');
-const selectRoom = document.getElementById('id_room');
 const roomLoadIndicator = document.getElementById('roomLoadIndicator');
 
 async function handleFloorChange(targetRoomId = null) {

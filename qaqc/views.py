@@ -544,12 +544,17 @@ def defects_gallery_view(request):
     if project_id and project_id != 'all':
         inspections = inspections.filter(project_id=project_id)
 
-    # 2. Floor-wise Filter
+    # 2. Floor-wise Filter (Supports dynamic floor IDs, floor names, and numeric levels)
     if floor_number and floor_number != 'all':
-        try:
-            inspections = inspections.filter(floor_number=int(floor_number))
-        except ValueError:
-            pass
+        floor_filter_q = Q(floor_id=floor_number) | Q(floor__floor_number=floor_number)
+        import re
+        m = re.search(r'-?\d+', floor_number)
+        if m:
+            try:
+                floor_filter_q |= Q(floor_number=int(m.group()))
+            except ValueError:
+                pass
+        inspections = inspections.filter(floor_filter_q)
 
     # 3. MEP-wise Filter
     if department and department != 'all':
@@ -583,14 +588,34 @@ def defects_gallery_view(request):
             Q(project__name__icontains=search)
         )
 
-    # Extract distinct floors for active project or across all
+    # Extract distinct floors (Dynamic Floor models + distinct numeric floors)
+    floor_models_qs = Floor.objects.all()
+    if project_id and project_id != 'all':
+        floor_models_qs = floor_models_qs.filter(project_id=project_id)
+
+    distinct_floors = []
+    seen_floors = set()
+    for fl in floor_models_qs.order_by('floor_number'):
+        distinct_floors.append({
+            'value': str(fl.id),
+            'label': fl.floor_number
+        })
+        seen_floors.add(str(fl.floor_number))
+
+    # Also query legacy floor_number values
     floor_qs = DefectInspection.objects.filter(
         Q(original_image__isnull=False, original_image__gt='') |
         Q(annotated_image__isnull=False, annotated_image__gt='')
     )
     if project_id and project_id != 'all':
         floor_qs = floor_qs.filter(project_id=project_id)
-    distinct_floors = list(floor_qs.values_list('floor_number', flat=True).distinct().order_by('floor_number'))
+    for fn in floor_qs.values_list('floor_number', flat=True).distinct():
+        if fn is not None and str(fn) not in seen_floors:
+            distinct_floors.append({
+                'value': str(fn),
+                'label': f"Level {fn}"
+            })
+            seen_floors.add(str(fn))
 
     projects = Project.objects.all().order_by('name')
 
@@ -628,6 +653,10 @@ def inspection_create_view(request):
         initial = {}
         if request.GET.get('project'):
             initial['project'] = request.GET.get('project')
+        if request.GET.get('floor'):
+            initial['floor'] = request.GET.get('floor')
+        if request.GET.get('room'):
+            initial['room'] = request.GET.get('room')
         if request.GET.get('department'):
             initial['department'] = request.GET.get('department')
         form = DefectInspectionForm(initial=initial)

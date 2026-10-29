@@ -874,20 +874,69 @@ function changeMatrixFilter(paramName, paramVal) {
   window.location.href = url.toString();
 }
 
-function shareDefectWhatsApp(id, dept, project, floor, room, status, fault, imgUrl) {
+async function shareDefectWhatsApp(id, dept, project, floor, room, status, fault, imgUrl) {
   const origin = window.location.origin;
   let text = `🚨 *MEP QA/QC DEFECT SNAG REPORT*\n`;
   text += `────────────────────\n`;
   text += `🔧 *Discipline:* ${dept} (${status})\n`;
   text += `🏢 *Site:* ${project}\n`;
-  text += `📍 *Location:* Level ${floor}${room ? ' (' + room + ')' : ''}\n`;
+  text += `📍 *Location:* ${floor}${room ? ' (' + room + ')' : ''}\n`;
   text += `⚠️ *Issue:* ${fault}\n`;
-  if (imgUrl) {
-    text += `📸 *Photo:* ${origin}${imgUrl}\n`;
-  }
-  text += `🔗 *Details:* ${origin}/inspections/${id}/\n`;
   text += `────────────────────\n`;
   text += `_MEP QA/QC Engineering Dashboard_`;
+
+  const fullImgUrl = imgUrl ? (imgUrl.startsWith('http') ? imgUrl : (origin + imgUrl)) : '';
+
+  // 1. Mobile Web Share API with image file
+  if (fullImgUrl && navigator.canShare) {
+    try {
+      showMatrixToast('Preparing photo for WhatsApp...', 'info');
+      const res = await fetch(fullImgUrl);
+      const blob = await res.blob();
+      const ext = blob.type.includes('png') ? 'png' : (blob.type.includes('webp') ? 'webp' : 'jpg');
+      const file = new File([blob], `defect_${id}.${ext}`, { type: blob.type || 'image/jpeg' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `MEP Snag #${id} - ${dept}`,
+          text: text
+        });
+        showMatrixToast('Shared photo directly to WhatsApp!', 'success');
+        return;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+
+  // 2. Desktop clipboard fallback: Copy image to clipboard so user can paste into WhatsApp Web
+  if (fullImgUrl) {
+    try {
+      const res = await fetch(fullImgUrl);
+      const blob = await res.blob();
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const pngBlob = await new Promise((resolve) => {
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth || img.width;
+          c.height = img.naturalHeight || img.height;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          c.toBlob((b) => resolve(b), 'image/png');
+        };
+        img.onerror = () => resolve(blob);
+        img.src = URL.createObjectURL(blob);
+      });
+
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': pngBlob })
+        ]);
+        showMatrixToast('📸 Photo copied to clipboard! Paste directly (Cmd+V / Ctrl+V) in WhatsApp.', 'success');
+      }
+    } catch (clipErr) {}
+  }
 
   const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
   window.open(waUrl, '_blank');
