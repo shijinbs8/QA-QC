@@ -303,6 +303,32 @@ def project_detail_view(request, project_id):
         na_cnt = 0
         total_cnt = 0
 
+        # Prefetch all defects for this floor and rooms so we can display them instantly
+        floor_inspections = DefectInspection.objects.filter(
+            project=project
+        ).filter(
+            Q(floor=current_matrix_floor) | 
+            Q(floor_number=current_matrix_floor.floor_number)
+        ).select_related('room').order_by('-date_recorded')
+
+        # Map defects to rooms by room_id or matching room_number
+        room_defects_map = {}
+        for insp in floor_inspections:
+            r_key = None
+            if insp.room_id:
+                r_key = insp.room_id
+            elif insp.apartment_number:
+                clean_apt = insp.apartment_number.strip().lower()
+                for r in matrix_rooms:
+                    clean_rm = r.room_number.strip().lower()
+                    if clean_rm == clean_apt or clean_rm in clean_apt or clean_apt in clean_rm:
+                        r_key = r.id
+                        break
+            if r_key:
+                if r_key not in room_defects_map:
+                    room_defects_map[r_key] = []
+                room_defects_map[r_key].append(insp)
+
         for room in matrix_rooms:
             cells = []
             for m in matrix_milestones:
@@ -323,10 +349,27 @@ def project_detail_view(request, project_id):
                     'status_obj': st,
                 })
 
+            room_defects = room_defects_map.get(room.id, [])
+            open_defects_list = [d for d in room_defects if d.status in (DefectInspection.STATUS_PENDING, DefectInspection.STATUS_NCR)]
+            
+            defects_summary = [
+                {
+                    'id': d.id,
+                    'dept': d.department,
+                    'status': d.status,
+                    'desc': d.faults_description[:120] if d.faults_description else 'No description',
+                    'date': d.date_recorded.strftime('%b %d, %H:%M'),
+                    'photo_url': d.annotated_image.url if d.annotated_image else (d.original_image.url if d.original_image else ''),
+                    'url': reverse('inspection_detail', args=[d.id])
+                }
+                for d in open_defects_list
+            ]
+
             matrix_rows.append({
                 'room': room,
-                'open_defects': room.open_defects_count,
-                'total_defects': room.total_defects_count,
+                'open_defects': len(open_defects_list),
+                'total_defects': len(room_defects),
+                'open_defects_json': json.dumps(defects_summary),
                 'cells': cells,
             })
 

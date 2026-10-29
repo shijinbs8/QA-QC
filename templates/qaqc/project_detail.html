@@ -335,18 +335,19 @@
                         {% endif %}
                       </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.3rem;">
+                    <div style="display: flex; align-items: center; gap: 0.25rem;">
                       <!-- Open Defect Count Badge -->
                       {% if row.open_defects > 0 %}
-                        <a href="{% url 'inspection_create' %}?project={{ project.id }}&floor={{ current_matrix_floor.id }}&room={{ row.room.id }}" 
-                           class="badge-status badge-ncr" 
-                           title="{{ row.open_defects }} Open Defect(s) - Click to inspect or add snag"
-                           style="font-size: 0.68rem; padding: 2px 6px; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.2rem;">
-                          <i class="fa-solid fa-triangle-exclamation"></i> {{ row.open_defects }}
-                        </a>
+                        <button type="button" 
+                                class="btn-room-defects-badge badge-has-defects" 
+                                title="{{ row.open_defects }} Open Defect(s) - Click to review before changing milestones"
+                                onclick="openRoomDefectsModal('{{ row.room.room_number|escapejs }}', {{ row.open_defects_json|safe }}, '{{ row.room.id }}')">
+                          <i class="fa-solid fa-triangle-exclamation"></i>
+                          <span>{{ row.open_defects }} Snag{{ row.open_defects|pluralize }}</span>
+                        </button>
                       {% else %}
-                        <span class="badge-status badge-cleared" style="font-size: 0.64rem; padding: 2px 5px; opacity: 0.85;" title="0 Open Defects">
-                          <i class="fa-solid fa-check"></i> 0
+                        <span class="btn-room-defects-badge badge-no-defects" title="0 Open Defects - Ready for milestone progress">
+                          <i class="fa-solid fa-check"></i> 0 Snags
                         </span>
                       {% endif %}
 
@@ -380,7 +381,11 @@
                     <select class="milestone-matrix-select {{ cell.status_obj.badge_class }}"
                             data-status-id="{{ cell.status_obj.id }}"
                             data-room-name="{{ row.room.room_number }}"
+                            data-room-id="{{ row.room.id }}"
                             data-milestone-name="{{ cell.milestone.name }}"
+                            data-prev-value="{{ cell.status_obj.status }}"
+                            data-open-defects="{{ row.open_defects }}"
+                            data-defects-json="{{ row.open_defects_json|escape }}"
                             onchange="updateRoomMilestoneStatus(this)">
                       {% for choice_val, choice_label in milestone_status_choices %}
                         <option value="{{ choice_val }}" {% if cell.status_obj.status == choice_val %}selected{% endif %}>
@@ -888,11 +893,25 @@ function shareDefectWhatsApp(id, dept, project, floor, room, status, fault, imgU
   window.open(waUrl, '_blank');
 }
 
-async function updateRoomMilestoneStatus(selectElem) {
+let pendingMilestoneUpdate = null;
+
+async function updateRoomMilestoneStatus(selectElem, force = false) {
   const statusId = selectElem.getAttribute('data-status-id');
   const roomName = selectElem.getAttribute('data-room-name') || 'Room';
+  const roomId = selectElem.getAttribute('data-room-id') || '';
   const milestoneName = selectElem.getAttribute('data-milestone-name') || 'Milestone';
   const newStatus = selectElem.value;
+  const prevValue = selectElem.getAttribute('data-prev-value') || 'Pending';
+  const openDefects = parseInt(selectElem.getAttribute('data-open-defects') || '0', 10);
+  const defectsJson = selectElem.getAttribute('data-defects-json');
+
+  // If user is marking 'Done' but room has open defects, warn them first so they can review!
+  if (!force && openDefects > 0 && newStatus === 'Done') {
+    pendingMilestoneUpdate = { selectElem, statusId, roomName, roomId, milestoneName, newStatus, prevValue, defectsJson };
+    showMilestoneWarningModal(roomName, milestoneName, newStatus, openDefects, defectsJson, roomId);
+    return;
+  }
+
   const prevClass = selectElem.className;
 
   // Add subtle pulse feedback
@@ -920,6 +939,7 @@ async function updateRoomMilestoneStatus(selectElem) {
 
     if (data.success) {
       selectElem.className = 'milestone-matrix-select ' + data.badge_class;
+      selectElem.setAttribute('data-prev-value', newStatus);
       const timeElem = document.getElementById(`status-time-${statusId}`);
       if (timeElem && data.updated_at) {
         timeElem.textContent = data.updated_at;
@@ -927,14 +947,116 @@ async function updateRoomMilestoneStatus(selectElem) {
       showMatrixToast(`${roomName} &bull; ${milestoneName}: <strong>${newStatus}</strong>`, 'success');
       recalculateMatrixStats();
     } else {
+      selectElem.value = prevValue;
       selectElem.className = prevClass;
       showMatrixToast(`Failed to update: ${data.error || 'Server error'}`, 'error');
     }
   } catch (err) {
+    selectElem.value = prevValue;
     selectElem.classList.remove('saving-pulse');
     selectElem.className = prevClass;
     showMatrixToast('Network error updating milestone status', 'error');
   }
+}
+
+function showMilestoneWarningModal(roomName, milestoneName, newStatus, openDefects, defectsJson, roomId) {
+  document.getElementById('warnRoomName').textContent = roomName;
+  document.getElementById('warnMilestoneName').textContent = milestoneName;
+  document.getElementById('warnDefectCount').textContent = openDefects;
+  openModal('modalMilestoneDefectWarning');
+}
+
+function cancelMilestoneWarning() {
+  if (pendingMilestoneUpdate && pendingMilestoneUpdate.selectElem) {
+    pendingMilestoneUpdate.selectElem.value = pendingMilestoneUpdate.prevValue;
+  }
+  pendingMilestoneUpdate = null;
+  closeModal('modalMilestoneDefectWarning');
+}
+
+function proceedMilestoneWarning() {
+  if (pendingMilestoneUpdate) {
+    const { selectElem } = pendingMilestoneUpdate;
+    closeModal('modalMilestoneDefectWarning');
+    updateRoomMilestoneStatus(selectElem, true);
+    pendingMilestoneUpdate = null;
+  }
+}
+
+function reviewDefectsFromWarning() {
+  if (pendingMilestoneUpdate) {
+    const { roomName, defectsJson, roomId } = pendingMilestoneUpdate;
+    let list = [];
+    try { list = JSON.parse(defectsJson); } catch (e) {}
+    closeModal('modalMilestoneDefectWarning');
+    openRoomDefectsModal(roomName, list, roomId);
+  }
+}
+
+function openRoomDefectsModal(roomName, defectsList, roomId = '') {
+  document.getElementById('defectModalRoomTitle').textContent = roomName;
+  const container = document.getElementById('defectModalListContainer');
+  const btnLog = document.getElementById('btnLogDefectForRoom');
+  
+  if (btnLog) {
+    const floorId = '{{ current_matrix_floor.id|default:"" }}';
+    const projId = '{{ project.id }}';
+    btnLog.href = `/inspections/new/?project=${projId}&floor=${floorId}&room=${roomId || ''}`;
+  }
+
+  if (!defectsList || defectsList.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 2rem 1rem; color: #64748B;">
+        <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: #10B981; margin-bottom: 0.5rem; display: block;"></i>
+        <h4 style="margin: 0; color: #1E293B;">No Open Defects in ${roomName}</h4>
+        <p style="font-size: 0.8rem; margin: 0.3rem 0 0 0;">This room is currently clear of reported snags and NCRs.</p>
+      </div>
+    `;
+  } else {
+    let html = `<div style="margin-bottom: 0.75rem; font-size: 0.8rem; color: #64748B;">
+      Found <strong>${defectsList.length}</strong> reported defect(s) for <strong>${roomName}</strong>:
+    </div>`;
+
+    defectsList.forEach(d => {
+      let deptColor = '#F97316';
+      if (d.dept === 'Plumbing') deptColor = '#0EA5E9';
+      else if (d.dept === 'Electrical') deptColor = '#EAB308';
+      else if (d.dept === 'Firefighting') deptColor = '#EF4444';
+
+      const thumbImg = d.photo_url 
+        ? `<img src="${d.photo_url}" class="room-defect-card-thumb" alt="Defect Photo">`
+        : `<div class="room-defect-card-thumb" style="display: flex; align-items: center; justify-content: center; color: #94A3B8; font-size: 1.2rem;"><i class="fa-solid fa-camera"></i></div>`;
+
+      html += `
+        <div class="room-defect-card-item">
+          ${thumbImg}
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; gap: 0.4rem; flex-wrap: wrap;">
+              <span style="background: ${deptColor}; color: #FFF; font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; text-transform: uppercase;">
+                ${d.dept}
+              </span>
+              <span class="badge-status ${d.status === 'Open NCR' ? 'badge-ncr' : 'badge-pending'}" style="font-size: 0.65rem; padding: 1px 5px;">
+                ${d.status}
+              </span>
+            </div>
+            <div style="font-size: 0.84rem; font-weight: 700; color: #1E293B; line-height: 1.35; margin-bottom: 0.3rem; word-break: break-word;">
+              ${d.desc}
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: #94A3B8; font-family: 'JetBrains Mono', monospace;">
+              <span>🕒 ${d.date}</span>
+              <a href="${d.url}" class="btn-skydash btn-skydash-outline" style="padding: 2px 7px; font-size: 0.68rem; border-radius: 4px; text-decoration: none;" target="_blank">
+                View Inspection &rarr;
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  openModal('modalRoomDefects');
 }
 
 function recalculateMatrixStats() {

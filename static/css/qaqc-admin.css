@@ -1496,4 +1496,181 @@ body {
   border-left: 4px solid var(--skydash-danger);
 }
 
+/* ==========================================================================
+   Room Wise Table Reported Defects Badge & Mobile Perfection
+   ========================================================================== */
+
+.btn-room-defects-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.btn-room-defects-badge.badge-has-defects {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.15);
+  animation: snagGlowPulse 2s infinite;
+}
+
+.btn-room-defects-badge.badge-has-defects:hover {
+  background: #FEE2E2;
+  color: #B91C1C;
+  transform: translateY(-1px);
+}
+
+.btn-room-defects-badge.badge-no-defects {
+  background: #F0FDF4;
+  color: #16A34A;
+  border: 1px solid #BBF7D0;
+  cursor: default;
+}
+
+@keyframes snagGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0);
+  }
+}
+
+/* Defect Quick-Check Modal Styles */
+.room-defect-card-item {
+  display: flex;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  background: #FFFFFF;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 0.65rem;
+  transition: all 0.15s ease;
+}
+
+.room-defect-card-item:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.room-defect-card-thumb {
+  width: 70px;
+  height: 70px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #1E293B;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Mobile Perfection Styles for Room Matrix Table */
+@media (max-width: 768px) {
+  .matrix-grid-card {
+    border-radius: var(--radius-sm);
+    margin-left: -0.4rem;
+    margin-right: -0.4rem;
+  }
+
+  .matrix-controls-bar {
+    padding: 0.65rem 0.65rem !important;
+    gap: 0.5rem !important;
+  }
+
+  .matrix-controls-bar select {
+    width: 100% !important;
+  }
+
+  .matrix-filter-group {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.35rem;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .matrix-filter-group .btn-skydash {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.65rem;
+    white-space: nowrap;
+  }
+
+  .matrix-grid-scroll-container {
+    max-height: calc(100vh - 220px) !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    border-top: 1px solid var(--border-light);
+  }
+
+  /* Sticky First Column for Room / Zone (Rock Solid on Mobile) */
+  .matrix-table th.matrix-room-header {
+    min-width: 140px !important;
+    max-width: 150px !important;
+    width: 140px !important;
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 30 !important;
+    background: #F8FAFD !important;
+    padding: 0.55rem 0.45rem !important;
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.07) !important;
+    border-right: 2px solid #CBD5E1 !important;
+  }
+
+  .matrix-table td.matrix-room-cell {
+    min-width: 140px !important;
+    max-width: 150px !important;
+    width: 140px !important;
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 20 !important;
+    background: #FFFFFF !important;
+    padding: 0.5rem 0.45rem !important;
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.07) !important;
+    border-right: 2px solid #CBD5E1 !important;
+  }
+
+  /* Compact Column Widths on Mobile */
+  .matrix-table th {
+    padding: 0.55rem 0.4rem !important;
+    min-width: 110px !important;
+  }
+
+  .matrix-table td {
+    padding: 0.45rem 0.35rem !important;
+    min-width: 110px !important;
+  }
+
+  .milestone-matrix-select {
+    font-size: 0.74rem !important;
+    padding: 4px 6px !important;
+    min-width: 95px !important;
+    border-radius: 6px !important;
+  }
+
+  .matrix-col-cat-tag {
+    font-size: 0.58rem !important;
+    padding: 1px 4px !important;
+  }
+
+  /* Scroll cue indicator */
+  .matrix-grid-scroll-container::-webkit-scrollbar {
+    height: 5px;
+  }
+  .matrix-grid-scroll-container::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 4px;
+  }
+}
+
 
