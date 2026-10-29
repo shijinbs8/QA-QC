@@ -39,6 +39,7 @@
         <label class="form-label" style="font-size: 0.74rem;">Trade Discipline</label>
         <select name="department" class="form-select" style="padding: 0.5rem 0.75rem; font-size: 0.82rem;">
           <option value="">All Trades</option>
+          <option value="Civil" {% if selected_department == 'Civil' %}selected{% endif %}>Civil</option>
           <option value="HVAC" {% if selected_department == 'HVAC' %}selected{% endif %}>HVAC</option>
           <option value="Plumbing" {% if selected_department == 'Plumbing' %}selected{% endif %}>Plumbing</option>
           <option value="Electrical" {% if selected_department == 'Electrical' %}selected{% endif %}>Electrical</option>

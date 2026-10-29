@@ -1068,7 +1068,8 @@ function openRoomDefectsModal(roomName, defectsList, roomId = '') {
 
     defectsList.forEach(d => {
       let deptColor = '#F97316';
-      if (d.dept === 'Plumbing') deptColor = '#0EA5E9';
+      if (d.dept === 'Civil') deptColor = '#8B5CF6';
+      else if (d.dept === 'Plumbing') deptColor = '#0EA5E9';
       else if (d.dept === 'Electrical') deptColor = '#EAB308';
       else if (d.dept === 'Firefighting') deptColor = '#EF4444';
 

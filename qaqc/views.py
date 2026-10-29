@@ -151,6 +151,7 @@ def dashboard_view(request):
 
     # Department breakdown
     departments = [
+        DefectInspection.DEPARTMENT_CIVIL,
         DefectInspection.DEPARTMENT_HVAC,
         DefectInspection.DEPARTMENT_PLUMBING,
         DefectInspection.DEPARTMENT_ELECTRICAL,

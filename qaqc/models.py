@@ -323,12 +323,14 @@ def create_statuses_for_new_milestone(sender, instance, created, **kwargs):
 
 
 class DefectInspection(models.Model):
+    DEPARTMENT_CIVIL = 'Civil'
     DEPARTMENT_HVAC = 'HVAC'
     DEPARTMENT_PLUMBING = 'Plumbing'
     DEPARTMENT_ELECTRICAL = 'Electrical'
     DEPARTMENT_FIREFIGHTING = 'Firefighting'
 
     DEPARTMENT_CHOICES = [
+        (DEPARTMENT_CIVIL, 'Civil'),
         (DEPARTMENT_HVAC, 'HVAC'),
         (DEPARTMENT_PLUMBING, 'Plumbing'),
         (DEPARTMENT_ELECTRICAL, 'Electrical'),
@@ -434,6 +436,7 @@ class DefectInspection(models.Model):
     @property
     def department_badge_class(self):
         mapping = {
+            self.DEPARTMENT_CIVIL: 'dept-civil',
             self.DEPARTMENT_HVAC: 'dept-hvac',
             self.DEPARTMENT_PLUMBING: 'dept-plumbing',
             self.DEPARTMENT_ELECTRICAL: 'dept-electrical',

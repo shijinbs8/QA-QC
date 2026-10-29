@@ -69,6 +69,7 @@
           </label>
           <select name="department" class="form-select" onchange="this.form.submit()" style="font-size: 0.82rem; padding: 0.48rem 0.75rem;">
             <option value="all" {% if not selected_department or selected_department == 'all' %}selected{% endif %}>All Disciplines</option>
+            <option value="Civil" {% if selected_department == 'Civil' %}selected{% endif %}>Civil & Structural</option>
             <option value="HVAC" {% if selected_department == 'HVAC' %}selected{% endif %}>HVAC Duct & Piping</option>
             <option value="Plumbing" {% if selected_department == 'Plumbing' %}selected{% endif %}>Plumbing & Drainage</option>
             <option value="Electrical" {% if selected_department == 'Electrical' %}selected{% endif %}>Electrical & Containment</option>

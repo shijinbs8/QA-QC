@@ -105,7 +105,8 @@
         </div>
         <div class="skydash-progress">
           <div class="skydash-progress-fill" style="width: {{ dept.percentage }}%; 
-            {% if dept.name == 'HVAC' %}background-color: var(--dept-hvac);
+            {% if dept.name == 'Civil' %}background-color: var(--dept-civil);
+            {% elif dept.name == 'HVAC' %}background-color: var(--dept-hvac);
             {% elif dept.name == 'Plumbing' %}background-color: var(--dept-plumbing);
             {% elif dept.name == 'Electrical' %}background-color: var(--dept-electrical);
             {% else %}background-color: var(--dept-fire);{% endif %}">
