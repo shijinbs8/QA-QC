@@ -303,13 +303,22 @@ def project_detail_view(request, project_id):
         na_cnt = 0
         total_cnt = 0
 
+        # Safely extract numeric floor value for legacy integer floor_number field
+        floor_num_val = None
+        if current_matrix_floor and current_matrix_floor.floor_number:
+            import re
+            m_floor = re.search(r'-?\d+', str(current_matrix_floor.floor_number))
+            if m_floor:
+                floor_num_val = int(m_floor.group())
+
+        floor_q = Q(floor=current_matrix_floor)
+        if floor_num_val is not None:
+            floor_q |= Q(floor_number=floor_num_val)
+
         # Prefetch all defects for this floor and rooms so we can display them instantly
         floor_inspections = DefectInspection.objects.filter(
             project=project
-        ).filter(
-            Q(floor=current_matrix_floor) | 
-            Q(floor_number=current_matrix_floor.floor_number)
-        ).select_related('room').order_by('-date_recorded')
+        ).filter(floor_q).select_related('room').order_by('-date_recorded')
 
         # Map defects to rooms by room_id or matching room_number
         room_defects_map = {}

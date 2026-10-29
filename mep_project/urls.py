@@ -25,12 +25,12 @@ urlpatterns = [
     path('', include('qaqc.urls')),
 ]
 
-# Ensure uploaded media files are always accessible, whether in local dev (DEBUG=True)
-# or on hosting platforms like PythonAnywhere (DEBUG=False)
+# Static and Media routing: ensure static CSS/JS and uploaded media files
+# are served reliably in all environments (local dev and PythonAnywhere / production)
+static_dir = settings.STATICFILES_DIRS[0] if settings.STATICFILES_DIRS else settings.STATIC_ROOT
+
 urlpatterns += [
+    re_path(r'^static/(?P<path>.*)$', serve, {'document_root': static_dir}),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
 
