@@ -795,6 +795,244 @@ def api_project_floors(request, project_id):
     })
 
 
+@login_required
+def api_room_statuses(request, room_id):
+    """Returns all milestone statuses, metadata, and open defects for a specific room/apartment in JSON."""
+    room = get_object_or_404(
+        Room.objects.select_related('floor', 'floor__project').prefetch_related(
+            'milestones__milestone',
+            'defect_inspections'
+        ),
+        pk=room_id
+    )
+
+    # Ensure all milestone definitions exist for this room
+    existing_milestone_ids = set(room.milestones.values_list('milestone_id', flat=True))
+    all_milestones = MilestoneDefinition.objects.all().order_by('display_order', 'id')
+    missing_milestones = [m for m in all_milestones if m.id not in existing_milestone_ids]
+    if missing_milestones:
+        new_statuses = [
+            RoomMilestoneStatus(room=room, milestone=m, status=RoomMilestoneStatus.STATUS_PENDING)
+            for m in missing_milestones
+        ]
+        RoomMilestoneStatus.objects.bulk_create(new_statuses)
+        room_statuses = list(room.milestones.select_related('milestone').order_by('milestone__display_order', 'milestone__id'))
+    else:
+        room_statuses = list(room.milestones.select_related('milestone').order_by('milestone__display_order', 'milestone__id'))
+
+    total = len(room_statuses)
+    done_cnt = sum(1 for s in room_statuses if s.status == RoomMilestoneStatus.STATUS_DONE)
+    in_prog_cnt = sum(1 for s in room_statuses if s.status == RoomMilestoneStatus.STATUS_IN_PROGRESS)
+    pend_cnt = sum(1 for s in room_statuses if s.status == RoomMilestoneStatus.STATUS_PENDING)
+    na_cnt = sum(1 for s in room_statuses if s.status == RoomMilestoneStatus.STATUS_NA)
+    completion_rate = round((done_cnt / total) * 100, 1) if total > 0 else 0
+
+    open_defects = room.defect_inspections.filter(
+        Q(status=DefectInspection.STATUS_PENDING) | Q(status=DefectInspection.STATUS_NCR)
+    ).order_by('-date_recorded')
+
+    defects_list = [
+        {
+            'id': d.id,
+            'dept': d.department,
+            'status': d.status,
+            'desc': d.faults_description or 'No description recorded',
+            'date': d.date_recorded.strftime('%b %d, %Y'),
+            'photo_url': d.annotated_image.url if d.annotated_image else (d.original_image.url if d.original_image else ''),
+            'url': reverse('inspection_detail', args=[d.id])
+        }
+        for d in open_defects
+    ]
+
+    milestones_data = [
+        {
+            'status_id': s.id,
+            'milestone_id': s.milestone.id,
+            'name': s.milestone.name,
+            'category': s.milestone.category,
+            'status': s.status,
+            'badge_class': s.badge_class,
+            'updated_at': s.updated_at.strftime('%b %d, %H:%M'),
+            'notes': s.notes or '',
+        }
+        for s in room_statuses
+    ]
+
+    return JsonResponse({
+        'success': True,
+        'room': {
+            'id': room.id,
+            'room_number': room.room_number,
+            'room_type': room.room_type,
+            'is_common_area': room.is_common_area,
+            'floor_id': room.floor.id,
+            'floor_number': room.floor.floor_number,
+            'floor_type': room.floor.floor_type,
+            'project_id': room.floor.project.id,
+            'project_name': room.floor.project.name,
+            'open_defects_count': len(defects_list),
+            'total_defects_count': room.defect_inspections.count(),
+            'defects': defects_list,
+            'full_page_url': reverse('room_status_detail', args=[room.id]),
+            'matrix_url': f"{reverse('project_detail', args=[room.floor.project.id])}?tab=matrix&matrix_floor={room.floor.id}",
+        },
+        'stats': {
+            'total': total,
+            'done': done_cnt,
+            'in_progress': in_prog_cnt,
+            'pending': pend_cnt,
+            'na': na_cnt,
+            'completion_rate': completion_rate,
+        },
+        'status_choices': [
+            {'value': val, 'label': label} for val, label in RoomMilestoneStatus.STATUS_CHOICES
+        ],
+        'milestones': milestones_data,
+    })
+
+
+@login_required
+@require_POST
+def api_room_bulk_status(request, room_id):
+    """Bulk updates milestone statuses for a room (e.g. Mark All Done, Reset All)."""
+    room = get_object_or_404(Room, pk=room_id)
+    try:
+        data = json.loads(request.body)
+        new_status = data.get('status')
+        category = data.get('category')
+        force = data.get('force', False)
+
+        valid_statuses = dict(RoomMilestoneStatus.STATUS_CHOICES)
+        if new_status not in valid_statuses:
+            return JsonResponse({'success': False, 'error': f"Invalid status '{new_status}'."}, status=400)
+
+        # Safety check if marking Done with open defects
+        if new_status == RoomMilestoneStatus.STATUS_DONE and not force and room.open_defects_count > 0:
+            return JsonResponse({
+                'success': False,
+                'warning': 'open_defects',
+                'open_defects': room.open_defects_count,
+                'message': f"This unit has {room.open_defects_count} open defect(s). Please confirm milestone sign-off."
+            }, status=400)
+
+        qs = room.milestones.all()
+        if category and category != 'ALL':
+            qs = qs.filter(milestone__category=category)
+
+        updated_count = qs.update(status=new_status, updated_at=timezone.now())
+
+        return JsonResponse({
+            'success': True,
+            'updated_count': updated_count,
+            'new_status': new_status,
+            'room_id': room.id,
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def room_status_detail_view(request, room_id):
+    """
+    Dedicated QA/QC Milestone Status Workspace for a specific Apartment or Room.
+    Enables site engineers to conveniently inspect and toggle milestone statuses,
+    review defects, add clearance notes, and step through apartments seamlessly.
+    """
+    room = get_object_or_404(
+        Room.objects.select_related('floor', 'floor__project').prefetch_related('defect_inspections'),
+        pk=room_id
+    )
+    floor = room.floor
+    project = floor.project
+
+    # Ensure all milestone definitions exist for this room
+    existing_milestone_ids = set(room.milestones.values_list('milestone_id', flat=True))
+    all_milestones = MilestoneDefinition.objects.all().order_by('display_order', 'id')
+    missing_milestones = [m for m in all_milestones if m.id not in existing_milestone_ids]
+    if missing_milestones:
+        new_statuses = [
+            RoomMilestoneStatus(room=room, milestone=m, status=RoomMilestoneStatus.STATUS_PENDING)
+            for m in missing_milestones
+        ]
+        RoomMilestoneStatus.objects.bulk_create(new_statuses)
+
+    # Handle standard form POST submissions
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'bulk_update':
+            bulk_status = request.POST.get('bulk_status')
+            if bulk_status in dict(RoomMilestoneStatus.STATUS_CHOICES):
+                room.milestones.all().update(status=bulk_status, updated_at=timezone.now())
+                messages.success(request, f"All milestones updated to '{bulk_status}' for {room.room_number}.")
+        elif action == 'save_single':
+            status_id = request.POST.get('status_id')
+            new_status = request.POST.get('status')
+            notes = request.POST.get('notes', '').strip()
+            status_obj = get_object_or_404(RoomMilestoneStatus, pk=status_id, room=room)
+            if new_status in dict(RoomMilestoneStatus.STATUS_CHOICES):
+                status_obj.status = new_status
+                status_obj.notes = notes
+                status_obj.save(update_fields=['status', 'notes', 'updated_at'])
+                messages.success(request, f"Updated '{status_obj.milestone.name}' to {new_status}.")
+        return redirect('room_status_detail', room_id=room.id)
+
+    # Get all statuses grouped by category
+    room_statuses = list(room.milestones.select_related('milestone').order_by('milestone__display_order', 'milestone__id'))
+    
+    total = len(room_statuses)
+    done_cnt = sum(1 for s in room_statuses if s.status == RoomMilestoneStatus.STATUS_DONE)
+    in_prog_cnt = sum(1 for s in room_statuses if s.status == RoomMilestoneStatus.STATUS_IN_PROGRESS)
+    pend_cnt = sum(1 for s in room_statuses if s.status == RoomMilestoneStatus.STATUS_PENDING)
+    na_cnt = sum(1 for s in room_statuses if s.status == RoomMilestoneStatus.STATUS_NA)
+    completion_rate = round((done_cnt / total) * 100, 1) if total > 0 else 0
+
+    statuses_by_category = {}
+    for st in room_statuses:
+        cat = st.milestone.category
+        if cat not in statuses_by_category:
+            statuses_by_category[cat] = []
+        statuses_by_category[cat].append(st)
+
+    # Sibling rooms on the same floor for quick Prev / Next navigation
+    sibling_rooms = list(floor.rooms.all().order_by('room_number'))
+    prev_room = None
+    next_room = None
+    for idx, r in enumerate(sibling_rooms):
+        if r.id == room.id:
+            if idx > 0:
+                prev_room = sibling_rooms[idx - 1]
+            if idx < len(sibling_rooms) - 1:
+                next_room = sibling_rooms[idx + 1]
+            break
+
+    # Defects for this room
+    defects = room.defect_inspections.all().order_by('-date_recorded')
+    open_defects = [d for d in defects if d.status in (DefectInspection.STATUS_PENDING, DefectInspection.STATUS_NCR)]
+
+    context = {
+        'page_title': f"{room.room_number} Milestone Status Workspace",
+        'room': room,
+        'floor': floor,
+        'project': project,
+        'statuses_by_category': statuses_by_category,
+        'all_statuses': room_statuses,
+        'status_choices': RoomMilestoneStatus.STATUS_CHOICES,
+        'total': total,
+        'done_cnt': done_cnt,
+        'in_prog_cnt': in_prog_cnt,
+        'pend_cnt': pend_cnt,
+        'na_cnt': na_cnt,
+        'completion_rate': completion_rate,
+        'defects': defects,
+        'open_defects': open_defects,
+        'prev_room': prev_room,
+        'next_room': next_room,
+        'matrix_url': f"{reverse('project_detail', args=[project.id])}?tab=matrix&matrix_floor={floor.id}",
+        'metrics': get_global_metrics(request.user),
+    }
+    return render(request, 'qaqc/room_status_detail.html', context)
+
+
 # ==============================================================================
 # Floor & Room Automatic Generation & Management Views
 # ==============================================================================

@@ -74,7 +74,13 @@
           <div style="padding: 0.75rem; background: #FFFFFF; border: 1px solid var(--border-light); border-radius: 8px;">
             <span style="color: var(--text-body); font-size: 0.72rem; text-transform: uppercase; font-weight: 800; display: block;">Location</span>
             <strong style="color: var(--text-dark);">{% if inspection.floor %}{{ inspection.floor.floor_number }}{% else %}Level {{ inspection.floor_number }}{% endif %}</strong>
-            {% if inspection.apartment_number %}
+            {% if inspection.room %}
+            <div style="margin-top: 2px;">
+              <a href="{% url 'room_status_detail' inspection.room.id %}" style="color: var(--skydash-primary); font-size: 0.78rem; text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Open apartment milestone status workspace">
+                <i class="fa-solid fa-door-open"></i> {{ inspection.apartment_number }} &bull; Status Workspace &rarr;
+              </a>
+            </div>
+            {% elif inspection.apartment_number %}
             <div style="color: var(--text-body); font-size: 0.76rem;">{{ inspection.apartment_number }}</div>
             {% endif %}
           </div>

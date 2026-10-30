@@ -33,9 +33,14 @@ urlpatterns = [
     path('floors/<int:floor_id>/delete/', views.floor_delete_view, name='floor_delete'),
     path('floors/<int:floor_id>/common-areas/add/', views.add_common_areas_view, name='add_common_areas'),
     path('floors/<int:floor_id>/rooms/new/', views.room_create_view, name='room_create'),
+    path('rooms/<int:room_id>/statuses/', views.room_status_detail_view, name='room_status_detail'),
     path('rooms/<int:room_id>/edit/', views.room_edit_view, name='room_edit'),
     path('rooms/<int:room_id>/delete/', views.room_delete_view, name='room_delete'),
     path('milestones/new/', views.milestone_create_view, name='milestone_create'),
+
+    # Room Status APIs
+    path('api/rooms/<int:room_id>/statuses/', views.api_room_statuses, name='api_room_statuses'),
+    path('api/rooms/<int:room_id>/bulk-status/', views.api_room_bulk_status, name='api_room_bulk_status'),
 
     # Demo Seed
     path('seed-demo-data/', views.seed_demo_data_view, name='seed_demo_data'),

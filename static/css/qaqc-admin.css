@@ -1709,4 +1709,88 @@ body {
   }
 }
 
+/* ==========================================================================
+   Interactive Apartment Quick-Link & Status Pill Controls
+   ========================================================================== */
+.apt-interactive-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.apt-interactive-link:hover {
+  background: #EEF2FF;
+  border-color: #D8E0FF;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(75, 73, 172, 0.12);
+}
+
+.apt-interactive-link:hover strong {
+  color: #38369A;
+}
+
+.status-pill-group {
+  display: inline-flex;
+  align-items: center;
+  background: #F1F5F9;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid #E2E8F0;
+}
+
+.status-pill-btn {
+  border: none;
+  background: transparent;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 6px;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.status-pill-btn:hover {
+  color: #1E293B;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.status-pill-btn.pill-pending.active {
+  background: #FFF9E6;
+  color: #B8860B;
+  font-weight: 800;
+  box-shadow: 0 1px 3px rgba(184, 134, 11, 0.2);
+}
+
+.status-pill-btn.pill-progress.active {
+  background: #EEF2FF;
+  color: #4B49AC;
+  font-weight: 800;
+  box-shadow: 0 1px 4px rgba(75, 73, 172, 0.25);
+}
+
+.status-pill-btn.pill-done.active {
+  background: #F0FDF4;
+  color: #16A34A;
+  font-weight: 800;
+  box-shadow: 0 1px 4px rgba(22, 163, 74, 0.25);
+}
+
+.status-pill-btn.pill-na.active {
+  background: #E2E8F0;
+  color: #475569;
+  font-weight: 800;
+}
+
 

@@ -321,21 +321,33 @@
                 <td class="matrix-room-cell">
                   <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
                     <div>
-                      <div style="font-size: 0.84rem; color: var(--text-dark); display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                      <button type="button" 
+                              class="apt-interactive-link" 
+                              onclick="openApartmentStatusModal('{{ row.room.id }}', '{{ row.room.room_number|escapejs }}')"
+                              title="Click to open status changer modal for {{ row.room.room_number }}">
                         {% if row.room.is_common_area %}
                           <i class="fa-solid fa-cube" style="color: #6f42c1; font-size: 0.82rem;" title="Common Area"></i>
                         {% else %}
                           <i class="fa-solid fa-door-open" style="color: var(--skydash-primary); font-size: 0.82rem;" title="Apartment Unit"></i>
                         {% endif %}
-                        <strong style="font-size: 0.82rem;">{{ row.room.room_number }}</strong>
+                        <strong style="font-size: 0.84rem; color: var(--skydash-primary); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: #d8e0ff;">{{ row.room.room_number }}</strong>
                         {% if row.room.is_common_area %}
                           <span style="font-size: 0.62rem; background: #FAF5FF; color: #6B46C1; border: 1px solid #E9D8FD; border-radius: 4px; padding: 0 4px; font-weight: 700;">Service</span>
                         {% else %}
                           <span style="font-size: 0.62rem; background: #EEF2FF; color: #4B49AC; border: 1px solid #D8E0FF; border-radius: 4px; padding: 0 4px; font-weight: 700;">Apt</span>
                         {% endif %}
-                      </div>
+                        <i class="fa-solid fa-pen-to-square" style="font-size: 0.65rem; color: var(--skydash-primary); opacity: 0.7;"></i>
+                      </button>
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.25rem;">
+                      <!-- Dedicated Status Workspace Full Page Link -->
+                      <a href="{% url 'room_status_detail' row.room.id %}" 
+                         class="btn-skydash btn-skydash-outline" 
+                         style="padding: 2px 5px; font-size: 0.65rem; border-radius: 4px; color: var(--skydash-primary);" 
+                         title="Redirect to dedicated Status Workspace page for {{ row.room.room_number }}">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                      </a>
+
                       <!-- Open Defect Count Badge -->
                       {% if row.open_defects > 0 %}
                         <button type="button" 
@@ -1109,6 +1121,260 @@ function openRoomDefectsModal(roomName, defectsList, roomId = '') {
   openModal('modalRoomDefects');
 }
 
+let currentModalRoomData = null;
+
+function escapeJsStr(str) {
+  if (!str) return '';
+  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
+async function openApartmentStatusModal(roomId, roomNumber) {
+  openModal('modalApartmentStatusManager');
+  
+  const loading = document.getElementById('modalAptLoading');
+  const container = document.getElementById('modalAptMilestonesContainer');
+  const title = document.getElementById('modalAptTitle');
+  const fullPageLink = document.getElementById('modalAptFullPageLink');
+  
+  if (title) title.textContent = roomNumber || 'Apartment';
+  if (loading) {
+    loading.style.display = 'block';
+    loading.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--skydash-primary); margin-bottom: 0.5rem; display: block;"></i><span>Loading milestone statuses...</span>';
+  }
+  if (container) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+  }
+
+  try {
+    const res = await fetch(`/api/rooms/${roomId}/statuses/`);
+    const data = await res.json();
+    if (!data.success) {
+      if (loading) loading.innerHTML = `<span style="color:#ef4444; font-weight:700;">Failed to load unit data: ${data.error || 'Server error'}</span>`;
+      return;
+    }
+
+    currentModalRoomData = data;
+    renderModalRoomStatuses(data);
+  } catch (err) {
+    if (loading) loading.innerHTML = `<span style="color:#ef4444; font-weight:700;">Network error loading unit data</span>`;
+  }
+}
+
+function updateModalStatsUI(stats) {
+  const pct = document.getElementById('modalAptPct');
+  const ratio = document.getElementById('modalAptRatio');
+  const bar = document.getElementById('modalAptProgressBar');
+  if (pct) pct.textContent = `${stats.completion_rate}%`;
+  if (ratio) ratio.textContent = `(${stats.done} / ${stats.total} Done)`;
+  if (bar) bar.style.width = `${stats.completion_rate}%`;
+}
+
+function renderModalRoomStatuses(data) {
+  const loading = document.getElementById('modalAptLoading');
+  const container = document.getElementById('modalAptMilestonesContainer');
+  const title = document.getElementById('modalAptTitle');
+  const subtitle = document.getElementById('modalAptSubtitle');
+  const typeBadge = document.getElementById('modalAptTypeBadge');
+  const fullPageLink = document.getElementById('modalAptFullPageLink');
+  const icon = document.getElementById('modalAptIcon');
+  const iconBox = document.getElementById('modalAptIconBox');
+  const defectAlert = document.getElementById('modalAptDefectAlert');
+  const defectText = document.getElementById('modalAptDefectText');
+  const viewDefectsBtn = document.getElementById('modalAptViewDefectsBtn');
+
+  if (title) title.textContent = (data.room.is_common_area ? '' : 'Apartment ') + data.room.room_number;
+  if (subtitle) subtitle.textContent = `${data.room.floor_number} • ${data.room.project_name}`;
+  if (fullPageLink) fullPageLink.href = data.room.full_page_url;
+  
+  if (typeBadge) {
+    typeBadge.textContent = data.room.is_common_area ? 'Common Area' : 'Apartment Unit';
+    typeBadge.style.background = data.room.is_common_area ? '#FAF5FF' : '#EEF2FF';
+    typeBadge.style.color = data.room.is_common_area ? '#6B46C1' : '#4B49AC';
+  }
+  if (icon && iconBox) {
+    icon.className = data.room.is_common_area ? 'fa-solid fa-cube' : 'fa-solid fa-door-open';
+    iconBox.style.color = data.room.is_common_area ? '#6B46C1' : 'var(--skydash-primary)';
+    iconBox.style.background = data.room.is_common_area ? '#FAF5FF' : '#EEF2FF';
+  }
+
+  // Defect warning
+  if (defectAlert) {
+    if (data.room.open_defects_count > 0) {
+      defectAlert.style.display = 'flex';
+      if (defectText) defectText.textContent = `${data.room.open_defects_count} Open Snag(s) recorded for this room. Check defects before signing off.`;
+      if (viewDefectsBtn) {
+        viewDefectsBtn.onclick = () => {
+          openRoomDefectsModal(data.room.room_number, data.room.defects, data.room.id);
+        };
+      }
+    } else {
+      defectAlert.style.display = 'none';
+    }
+  }
+
+  // Stats
+  updateModalStatsUI(data.stats);
+
+  // Group milestones by category
+  const groups = {};
+  data.milestones.forEach(m => {
+    if (!groups[m.category]) groups[m.category] = [];
+    groups[m.category].push(m);
+  });
+
+  let html = '';
+  for (const [cat, items] of Object.entries(groups)) {
+    html += `
+      <div style="background: #FAFBFD; border: 1px solid var(--border-light); border-radius: 8px; padding: 0.75rem 0.9rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span class="matrix-col-cat-tag cat-tag-${cat.toLowerCase()}" style="font-size: 0.68rem; padding: 1px 7px;">
+            ${cat}
+          </span>
+          <span style="font-size: 0.72rem; color: var(--text-body); font-weight: 700;">
+            ${items.length} Milestone${items.length > 1 ? 's' : ''}
+          </span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    `;
+
+    items.forEach(m => {
+      html += `
+        <div class="modal-milestone-row" id="modal-m-${m.status_id}" style="background: #FFFFFF; border: 1px solid #EDF2F7; border-radius: 6px; padding: 0.65rem 0.8rem; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 170px;">
+            <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-dark);">
+              ${m.name}
+            </div>
+            <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 2px;">
+              Updated: <span id="modal-time-${m.status_id}" style="font-family: 'JetBrains Mono', monospace;">${m.updated_at}</span>
+            </div>
+          </div>
+
+          <div class="status-pill-group" data-status-id="${m.status_id}">
+            <button type="button" class="status-pill-btn pill-pending ${m.status === 'Pending' ? 'active' : ''}" onclick="updateStatusFromModal('${m.status_id}', 'Pending', '${escapeJsStr(m.name)}')">
+              Pending
+            </button>
+            <button type="button" class="status-pill-btn pill-progress ${m.status === 'In Progress' ? 'active' : ''}" onclick="updateStatusFromModal('${m.status_id}', 'In Progress', '${escapeJsStr(m.name)}')">
+              Progress
+            </button>
+            <button type="button" class="status-pill-btn pill-done ${m.status === 'Done' ? 'active' : ''}" onclick="updateStatusFromModal('${m.status_id}', 'Done', '${escapeJsStr(m.name)}')">
+              Done
+            </button>
+            <button type="button" class="status-pill-btn pill-na ${m.status === 'Not Applicable' ? 'active' : ''}" onclick="updateStatusFromModal('${m.status_id}', 'Not Applicable', '${escapeJsStr(m.name)}')">
+              N/A
+            </button>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `</div></div>`;
+  }
+
+  container.innerHTML = html;
+  if (loading) loading.style.display = 'none';
+  if (container) container.style.display = 'flex';
+}
+
+async function updateStatusFromModal(statusId, newStatus, milestoneName) {
+  if (currentModalRoomData && currentModalRoomData.room.open_defects_count > 0 && newStatus === 'Done') {
+    if (!confirm(`Warning: Unit has ${currentModalRoomData.room.open_defects_count} open snag(s). Sign off '${milestoneName}' as Done?`)) {
+      return;
+    }
+  }
+
+  const row = document.getElementById(`modal-m-${statusId}`);
+  if (row) {
+    const group = row.querySelector('.status-pill-group');
+    if (group) {
+      group.querySelectorAll('.status-pill-btn').forEach(b => b.classList.remove('active'));
+      const classMap = { 'Pending': 'pill-pending', 'In Progress': 'pill-progress', 'Done': 'pill-done', 'Not Applicable': 'pill-na' };
+      const btn = group.querySelector('.' + classMap[newStatus]);
+      if (btn) btn.classList.add('active');
+    }
+  }
+
+  try {
+    const res = await fetch(`/api/milestones/${statusId}/update/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+    const data = await res.json();
+    if (data.success) {
+      const timeElem = document.getElementById(`modal-time-${statusId}`);
+      if (timeElem && data.updated_at) timeElem.textContent = data.updated_at;
+      showMatrixToast(`${milestoneName}: <strong>${newStatus}</strong>`, 'success');
+
+      // Sync with underlying matrix table select element if present
+      const tableSelect = document.querySelector(`.milestone-matrix-select[data-status-id="${statusId}"]`);
+      if (tableSelect) {
+        tableSelect.value = newStatus;
+        tableSelect.className = 'milestone-matrix-select ' + data.badge_class;
+        tableSelect.setAttribute('data-prev-value', newStatus);
+        const tTime = document.getElementById(`status-time-${statusId}`);
+        if (tTime && data.updated_at) tTime.textContent = data.updated_at;
+        recalculateMatrixStats();
+      }
+
+      // Update modal stats
+      if (currentModalRoomData) {
+        const m = currentModalRoomData.milestones.find(x => x.status_id == statusId);
+        if (m) m.status = newStatus;
+        const total = currentModalRoomData.milestones.length;
+        const done = currentModalRoomData.milestones.filter(x => x.status === 'Done').length;
+        const rate = total > 0 ? ((done / total) * 100).toFixed(1) : 0;
+        updateModalStatsUI({ total, done, completion_rate: rate });
+      }
+    } else {
+      showMatrixToast(`Error: ${data.error || 'Failed'}`, 'error');
+    }
+  } catch (e) {
+    showMatrixToast('Network error saving status', 'error');
+  }
+}
+
+async function bulkUpdateFromModal(newStatus) {
+  if (!currentModalRoomData) return;
+  const roomId = currentModalRoomData.room.id;
+
+  if (newStatus === 'Done' && currentModalRoomData.room.open_defects_count > 0) {
+    if (!confirm(`Warning: Unit has ${currentModalRoomData.room.open_defects_count} open defect(s). Mark all milestones Done?`)) {
+      return;
+    }
+  }
+
+  try {
+    const res = await fetch(`/api/rooms/${roomId}/bulk-status/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ status: newStatus, force: true })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showMatrixToast(`Updated all milestones to <strong>${newStatus}</strong>`, 'success');
+      // Re-fetch room data for modal
+      openApartmentStatusModal(roomId, currentModalRoomData.room.room_number);
+      // Also update table rows in matrix
+      document.querySelectorAll(`.milestone-matrix-select[data-room-id="${roomId}"]`).forEach(sel => {
+        sel.value = newStatus;
+        sel.className = 'milestone-matrix-select ' + (newStatus === 'Done' ? 'badge-milestone-done' : (newStatus === 'In Progress' ? 'badge-milestone-progress' : (newStatus === 'Not Applicable' ? 'badge-milestone-na' : 'badge-milestone-pending')));
+      });
+      recalculateMatrixStats();
+    } else {
+      showMatrixToast(data.message || 'Bulk update failed', 'error');
+    }
+  } catch (e) {
+    showMatrixToast('Network error on bulk update', 'error');
+  }
+}
+
 function recalculateMatrixStats() {
   const selects = document.querySelectorAll('.milestone-matrix-select');
   let done = 0, inProg = 0, pending = 0, na = 0, total = selects.length;
@@ -1330,6 +1596,167 @@ document.addEventListener('DOMContentLoaded', function() {
   updateModalCreatePreview();
 });
 </script>
+
+<!-- ========================================================================== -->
+<!-- MODAL: APARTMENT / ROOM MILESTONE STATUS MANAGER                          -->
+<!-- ========================================================================== -->
+<div class="mep-modal-backdrop" id="modalApartmentStatusManager" style="z-index: 1050;">
+  <div class="mep-modal" style="max-width: 820px; max-height: 90vh; display: flex; flex-direction: column;">
+    
+    <!-- Modal Header -->
+    <div class="skydash-card-header" style="background: linear-gradient(135deg, #FAFBFD 0%, #EEF2FF 100%); padding: 1.15rem 1.4rem; border-bottom: 1px solid var(--border-light); flex-shrink: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+      <div style="display: flex; gap: 0.85rem; align-items: center;">
+        <div id="modalAptIconBox" style="width: 44px; height: 44px; border-radius: 12px; background: #EEF2FF; border: 1px solid #D8E0FF; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: var(--skydash-primary);">
+          <i class="fa-solid fa-door-open" id="modalAptIcon"></i>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <h3 class="skydash-card-title" id="modalAptTitle" style="font-size: 1.25rem; font-weight: 800; color: var(--text-dark); margin: 0;">
+              Apartment
+            </h3>
+            <span id="modalAptTypeBadge" style="font-size: 0.68rem; background: #EEF2FF; color: #4B49AC; border: 1px solid #D8E0FF; border-radius: 4px; padding: 1px 7px; font-weight: 700;">
+              Apartment Unit
+            </span>
+          </div>
+          <span id="modalAptSubtitle" style="font-size: 0.76rem; color: var(--text-body); margin-top: 2px; display: block;">
+            Loading floor and site details...
+          </span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <a id="modalAptFullPageLink" href="#" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.74rem;" title="Redirect to dedicated Status Workspace page">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Full Page
+        </a>
+        <button type="button" onclick="closeModal('modalApartmentStatusManager')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body); padding: 0 4px;">&times;</button>
+      </div>
+    </div>
+
+    <!-- Modal Body (Scrollable) -->
+    <div class="skydash-card-body" style="padding: 1.25rem; overflow-y: auto; flex-grow: 1;">
+      
+      <!-- Progress Bar & Summary Counter -->
+      <div style="background: #FAFBFD; border: 1px solid var(--border-light); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <span style="font-size: 0.72rem; text-transform: uppercase; font-weight: 800; color: var(--text-body); letter-spacing: 0.03em;">Milestone Completion:</span>
+          <div style="display: flex; align-items: baseline; gap: 0.4rem; margin-top: 2px;">
+            <span id="modalAptPct" style="font-size: 1.3rem; font-weight: 800; color: var(--text-dark); font-family: 'JetBrains Mono', monospace;">0%</span>
+            <span id="modalAptRatio" style="font-size: 0.74rem; color: var(--text-body);">(0 / 0 Done)</span>
+          </div>
+        </div>
+
+        <div style="flex: 1; max-width: 200px; min-width: 130px;">
+          <div style="background: #e2e8f0; height: 8px; border-radius: 8px; overflow: hidden;">
+            <div id="modalAptProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #4B49AC, #22c55e); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Bulk Action Buttons inside Modal -->
+        <div style="display: flex; gap: 0.35rem;">
+          <button type="button" class="btn-skydash btn-skydash-sm" style="background: #F0FDF4; color: #16a34a; border-color: #bbf7d0; font-size: 0.72rem; font-weight: 700;" onclick="bulkUpdateFromModal('Done')">
+            <i class="fa-solid fa-check-double"></i> Mark All Done
+          </button>
+          <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.72rem;" onclick="bulkUpdateFromModal('Pending')">
+            <i class="fa-solid fa-rotate-left"></i> Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Snag Warning Banner (Hidden unless room has defects) -->
+      <div id="modalAptDefectAlert" style="display: none; background: #FFF5F5; border: 1px solid #FFD2D2; border-radius: 8px; padding: 0.7rem 0.9rem; margin-bottom: 1rem; align-items: center; justify-content: space-between; gap: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-triangle-exclamation" style="color: var(--skydash-danger); font-size: 1.1rem;"></i>
+          <span id="modalAptDefectText" style="font-size: 0.78rem; font-weight: 700; color: #991b1b;">
+            1 Open Defect recorded for this unit.
+          </span>
+        </div>
+        <button type="button" id="modalAptViewDefectsBtn" class="btn-skydash btn-skydash-sm" style="background: #dc3545; color: #fff; border-color: #dc3545; font-size: 0.7rem; padding: 2px 7px;">
+          Review Snags
+        </button>
+      </div>
+
+      <!-- Loading Spinner Container -->
+      <div id="modalAptLoading" style="text-align: center; padding: 2.5rem; color: var(--text-body);">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--skydash-primary); margin-bottom: 0.5rem; display: block;"></i>
+        <span>Loading milestone statuses...</span>
+      </div>
+
+      <!-- Milestones List Container -->
+      <div id="modalAptMilestonesContainer" style="display: none; flex-direction: column; gap: 0.75rem;"></div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div style="padding: 0.9rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+      <span style="font-size: 0.72rem; color: var(--text-body);">
+        <i class="fa-solid fa-shield-halved" style="color: var(--skydash-primary);"></i> Click status to save immediately &bull; Matrix syncs live
+      </span>
+      <button type="button" class="btn-skydash btn-skydash-primary btn-skydash-sm" onclick="closeModal('modalApartmentStatusManager')">
+        Done / Close
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========================================================================== -->
+<!-- MODAL: MILESTONE DEFECT WARNING                                            -->
+<!-- ========================================================================== -->
+<div class="mep-modal-backdrop" id="modalMilestoneDefectWarning" style="z-index: 1100;">
+  <div class="mep-modal" style="max-width: 480px;">
+    <div class="skydash-card-header" style="background: #FFF5F5; border-bottom: 1px solid #FFD2D2; padding: 1.15rem 1.4rem;">
+      <h3 class="skydash-card-title" style="color: var(--skydash-danger); margin: 0; font-size: 1.1rem;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Open Defect Snag Warning</span>
+      </h3>
+      <button type="button" onclick="cancelMilestoneWarning()" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+    <div class="skydash-card-body" style="padding: 1.25rem;">
+      <p style="font-size: 0.86rem; color: var(--text-dark); margin: 0 0 0.75rem 0; line-height: 1.45;">
+        You are marking <strong><span id="warnMilestoneName"></span></strong> as <strong>Done</strong>, but <strong id="warnRoomName"></strong> has <span id="warnDefectCount" style="color: var(--skydash-danger); font-weight: 800;"></span> open defect inspection(s).
+      </p>
+      <div style="background: #FFF5F5; border: 1px solid #FFD2D2; border-radius: 6px; padding: 0.75rem; font-size: 0.76rem; color: #991b1b; line-height: 1.4;">
+        Signing off milestone clearance before snag rework verification may violate QA/QC protocol.
+      </div>
+    </div>
+    <div style="padding: 0.9rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; gap: 0.5rem;">
+      <button type="button" class="btn-skydash btn-skydash-outline" onclick="reviewDefectsFromWarning()">
+        <i class="fa-solid fa-eye"></i> Review Snags
+      </button>
+      <div style="display: flex; gap: 0.5rem;">
+        <button type="button" class="btn-skydash btn-skydash-outline" onclick="cancelMilestoneWarning()">Cancel</button>
+        <button type="button" class="btn-skydash btn-skydash-primary" style="background: var(--skydash-danger); border-color: var(--skydash-danger);" onclick="proceedMilestoneWarning()">
+          Sign Off Anyway
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================== -->
+<!-- MODAL: ROOM DEFECTS LIST                                                  -->
+<!-- ========================================================================== -->
+<div class="mep-modal-backdrop" id="modalRoomDefects" style="z-index: 1100;">
+  <div class="mep-modal" style="max-width: 640px; max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="skydash-card-header" style="background: #FAFBFD; padding: 1.15rem 1.4rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+      <h3 class="skydash-card-title" style="margin: 0; font-size: 1.1rem; color: var(--text-dark);">
+        <i class="fa-solid fa-triangle-exclamation" style="color: var(--skydash-danger);"></i>
+        <span>Snags for <span id="defectModalRoomTitle"></span></span>
+      </h3>
+      <button type="button" onclick="closeModal('modalRoomDefects')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--text-body);">&times;</button>
+    </div>
+    <div class="skydash-card-body" id="defectModalListContainer" style="padding: 1.25rem; overflow-y: auto; flex-grow: 1;">
+    </div>
+    <div style="padding: 0.9rem 1.4rem; background: #FAFBFD; border-top: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+      <a id="btnLogDefectForRoom" href="#" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="color: var(--skydash-danger); border-color: #ffd2d2;">
+        <i class="fa-solid fa-plus"></i> Log New Snag
+      </a>
+      <button type="button" class="btn-skydash btn-skydash-primary btn-skydash-sm" onclick="closeModal('modalRoomDefects')">
+        Close
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- ========================================================================== -->
 <!-- MODAL 1: CREATE FLOOR & AUTO-GENERATE APARTMENTS                            -->

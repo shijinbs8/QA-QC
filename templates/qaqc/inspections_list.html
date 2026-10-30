@@ -112,7 +112,13 @@
             </td>
             <td>
               <strong style="color: var(--text-dark);">Level {{ item.floor_number }}</strong>
-              {% if item.apartment_number %}
+              {% if item.room %}
+              <div style="font-size: 0.74rem;">
+                <a href="{% url 'room_status_detail' item.room.id %}" style="color: var(--skydash-primary); text-decoration: none; font-weight: 700;" title="Open apartment status workspace">
+                  <i class="fa-solid fa-door-open" style="font-size: 0.65rem;"></i> {{ item.apartment_number }}
+                </a>
+              </div>
+              {% elif item.apartment_number %}
               <div style="font-size: 0.74rem; color: var(--text-body);">{{ item.apartment_number }}</div>
               {% endif %}
             </td>

@@ -1,0 +1,481 @@
+{% extends 'qaqc/base.html' %}
+{% load static %}
+
+{% block title %}{{ room.room_number }} Milestone Status Workspace &bull; {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="content-container">
+
+  <!-- ====================================================================
+       BREADCRUMB & PREV/NEXT NAVIGATOR
+       ==================================================================== -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-body); flex-wrap: wrap;">
+      <a href="{% url 'projects_list' %}" style="color: var(--text-body); text-decoration: none;">
+        <i class="fa-solid fa-building"></i> Projects
+      </a>
+      <span style="opacity: 0.5;">/</span>
+      <a href="{% url 'project_detail' project.id %}" style="color: var(--text-body); text-decoration: none;">
+        {{ project.name }}
+      </a>
+      <span style="opacity: 0.5;">/</span>
+      <a href="{{ matrix_url }}" style="color: var(--skydash-primary); text-decoration: none; font-weight: 700;">
+        <i class="fa-solid fa-layer-group"></i> {{ floor.floor_number }} Matrix
+      </a>
+      <span style="opacity: 0.5;">/</span>
+      <span style="color: var(--text-dark); font-weight: 800;">
+        {% if room.is_common_area %}<i class="fa-solid fa-cube" style="color: #6f42c1;"></i>{% else %}<i class="fa-solid fa-door-open" style="color: var(--skydash-primary);"></i>{% endif %}
+        {{ room.room_number }}
+      </span>
+    </div>
+
+    <!-- Quick Sibling Navigation (Previous / Next Unit) -->
+    <div style="display: flex; align-items: center; gap: 0.4rem;">
+      {% if prev_room %}
+      <a href="{% url 'room_status_detail' prev_room.id %}" class="btn-skydash btn-skydash-outline btn-skydash-sm" title="Previous Unit: {{ prev_room.room_number }}">
+        <i class="fa-solid fa-chevron-left"></i> {{ prev_room.room_number }}
+      </a>
+      {% endif %}
+
+      <a href="{{ matrix_url }}" class="btn-skydash btn-skydash-outline btn-skydash-sm" title="Return to Level Matrix Grid">
+        <i class="fa-solid fa-table-cells"></i> Matrix View
+      </a>
+
+      {% if next_room %}
+      <a href="{% url 'room_status_detail' next_room.id %}" class="btn-skydash btn-skydash-outline btn-skydash-sm" title="Next Unit: {{ next_room.room_number }}">
+        {{ next_room.room_number }} <i class="fa-solid fa-chevron-right"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       HERO APARTMENT STATUS HEADER CARD
+       ==================================================================== -->
+  <div class="skydash-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, #FAFBFD 0%, #FFFFFF 100%); border: 1px solid var(--border-light); box-shadow: 0 4px 14px rgba(0,0,0,0.04);">
+    <div class="skydash-card-body" style="padding: 1.4rem;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        
+        <!-- Left: Room Identifier & Metadata -->
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <div style="width: 56px; height: 56px; border-radius: 14px; background: {% if room.is_common_area %}#FAF5FF{% else %}#EEF2FF{% endif %}; border: 1px solid {% if room.is_common_area %}#E9D8FD{% else %}#D8E0FF{% endif %}; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: {% if room.is_common_area %}#6f42c1{% else %}var(--skydash-primary){% endif %};">
+            {% if room.is_common_area %}
+              <i class="fa-solid fa-cube"></i>
+            {% else %}
+              <i class="fa-solid fa-door-open"></i>
+            {% endif %}
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+              <h2 style="font-size: 1.45rem; font-weight: 800; color: var(--text-dark); margin: 0;">
+                {{ room.room_number }}
+              </h2>
+              {% if room.is_common_area %}
+                <span style="font-size: 0.72rem; background: #FAF5FF; color: #6B46C1; border: 1px solid #E9D8FD; border-radius: 6px; padding: 2px 8px; font-weight: 700;">
+                  <i class="fa-solid fa-cube"></i> Common Area / Service Space
+                </span>
+              {% else %}
+                <span style="font-size: 0.72rem; background: #EEF2FF; color: #4B49AC; border: 1px solid #D8E0FF; border-radius: 6px; padding: 2px 8px; font-weight: 700;">
+                  <i class="fa-solid fa-door-open"></i> Apartment Unit
+                </span>
+              {% endif %}
+            </div>
+
+            <div style="font-size: 0.82rem; color: var(--text-body); margin-top: 0.35rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <span><i class="fa-solid fa-building"></i> {{ project.name }}</span>
+              <span>&bull;</span>
+              <span><i class="fa-solid fa-stairs"></i> {{ floor.floor_number }} ({{ floor.floor_type }})</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Progress KPI Metric & Bulk Actions -->
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.6rem;">
+          <div style="display: flex; align-items: center; gap: 0.85rem;">
+            <div style="text-align: right;">
+              <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-dark); font-family: 'JetBrains Mono', monospace;" id="pageCompletionPercent">
+                {{ completion_rate }}%
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-body);" id="pageCompletionRatio">
+                {{ done_cnt }} of {{ total }} Milestones Done
+              </div>
+            </div>
+
+            <!-- Mini Radial/Bar Indicator -->
+            <div style="width: 130px;">
+              <div style="background: #e2e8f0; height: 10px; border-radius: 10px; overflow: hidden;">
+                <div id="pageProgressBar" style="width: {{ completion_rate }}%; height: 100%; background: linear-gradient(90deg, #4B49AC 0%, #22c55e 100%); transition: width 0.3s ease;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Bulk Actions -->
+          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+            <button type="button" class="btn-skydash btn-skydash-sm" style="background: #F0FDF4; color: #16a34a; border-color: #bbf7d0; font-weight: 700;" onclick="bulkUpdateRoomStatuses('Done')">
+              <i class="fa-solid fa-check-double"></i> Mark All Done
+            </button>
+            <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.75rem;" onclick="bulkUpdateRoomStatuses('Pending')">
+              <i class="fa-solid fa-rotate-left"></i> Reset All
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Open Defect Safety Warning Banner -->
+      {% if open_defects %}
+      <div style="background: #FFF5F5; border: 1px solid #FFD2D2; border-radius: 8px; padding: 0.75rem 1rem; margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <i class="fa-solid fa-triangle-exclamation" style="color: var(--skydash-danger); font-size: 1.15rem;"></i>
+          <div>
+            <strong style="color: #991b1b; font-size: 0.84rem;">
+              {{ open_defects|length }} Unresolved Snag{{ open_defects|length|pluralize }} Recorded in this Unit
+            </strong>
+            <div style="font-size: 0.74rem; color: #b91c1c;">
+              Inspectors must verify rework rectification before signing off final ceiling or wall closure milestones.
+            </div>
+          </div>
+        </div>
+        <a href="#roomDefectsSection" class="btn-skydash btn-skydash-sm" style="background: #dc3545; color: #fff; border-color: #dc3545; font-size: 0.74rem; padding: 3px 9px;">
+          <i class="fa-solid fa-eye"></i> Review Snags Below
+        </a>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MILESTONE STATUS WORKSPACE (ORGANIZED BY MEP DISCIPLINE)
+       ==================================================================== -->
+  <div style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--text-dark); margin: 0;">
+        <i class="fa-solid fa-list-check" style="color: var(--skydash-primary);"></i>
+        MEP & Civil Milestone Clearances
+      </h3>
+      <span style="font-size: 0.76rem; color: var(--text-body);">
+        Click any status pill to instantly update clearance records. Changes save automatically.
+      </span>
+    </div>
+
+    <!-- Category Sections Grid -->
+    <div style="display: flex; flex-direction: column; gap: 1.15rem;">
+      {% for category_name, cat_statuses in statuses_by_category.items %}
+      <div class="skydash-card" style="box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid var(--border-light);">
+        <!-- Category Sub-header -->
+        <div style="background: #FAFBFD; padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="matrix-col-cat-tag cat-tag-{{ category_name|lower }}" style="font-size: 0.72rem; padding: 2px 8px;">
+              {{ category_name }}
+            </span>
+            <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-dark);">
+              {{ cat_statuses|length }} Milestone{{ cat_statuses|length|pluralize }}
+            </span>
+          </div>
+
+          <!-- Quick Category Bulk Action -->
+          <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="font-size: 0.7rem; padding: 2px 7px;" onclick="bulkUpdateRoomStatuses('Done', '{{ category_name }}')">
+            Mark {{ category_name }} Done
+          </button>
+        </div>
+
+        <!-- Milestone Cards List -->
+        <div style="padding: 0.85rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;">
+          {% for st in cat_statuses %}
+          <div class="milestone-status-row" id="row-status-{{ st.id }}" style="background: #FFFFFF; border: 1px solid #EDF2F7; border-radius: 8px; padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; transition: all 0.2s ease;">
+            
+            <!-- Left: Milestone Title & Timestamp -->
+            <div style="flex: 1; min-width: 220px;">
+              <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-dark); display: flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-flag-checkered" style="font-size: 0.75rem; color: #9aa2b1;"></i>
+                <span>{{ st.milestone.name }}</span>
+              </div>
+              <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 3px; display: flex; align-items: center; gap: 0.6rem;">
+                <span>Updated: <strong id="time-{{ st.id }}" style="font-family: 'JetBrains Mono', monospace;">{{ st.updated_at|date:"M d, H:i" }}</strong></span>
+                {% if st.notes %}
+                  <span title="{{ st.notes }}" style="color: #64748b; font-style: italic;"><i class="fa-solid fa-note-sticky"></i> Has remark</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Right: Interactive 1-Click Status Pill Group -->
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <div class="status-pill-group" data-status-id="{{ st.id }}">
+                <button type="button" 
+                        class="status-pill-btn pill-pending {% if st.status == 'Pending' %}active{% endif %}" 
+                        onclick="setMilestonePillStatus('{{ st.id }}', 'Pending', '{{ st.milestone.name|escapejs }}')">
+                  <i class="fa-solid fa-clock"></i> Pending
+                </button>
+                <button type="button" 
+                        class="status-pill-btn pill-progress {% if st.status == 'In Progress' %}active{% endif %}" 
+                        onclick="setMilestonePillStatus('{{ st.id }}', 'In Progress', '{{ st.milestone.name|escapejs }}')">
+                  <i class="fa-solid fa-spinner"></i> In Progress
+                </button>
+                <button type="button" 
+                        class="status-pill-btn pill-done {% if st.status == 'Done' %}active{% endif %}" 
+                        onclick="setMilestonePillStatus('{{ st.id }}', 'Done', '{{ st.milestone.name|escapejs }}')">
+                  <i class="fa-solid fa-check"></i> Done
+                </button>
+                <button type="button" 
+                        class="status-pill-btn pill-na {% if st.status == 'Not Applicable' %}active{% endif %}" 
+                        onclick="setMilestonePillStatus('{{ st.id }}', 'Not Applicable', '{{ st.milestone.name|escapejs }}')">
+                  <i class="fa-solid fa-ban"></i> N/A
+                </button>
+              </div>
+
+              <!-- Quick Notes / Remark Toggle -->
+              <button type="button" class="btn-skydash btn-skydash-outline btn-skydash-sm" style="padding: 4px 7px; font-size: 0.72rem; color: #64748b;" title="Add clearance remark or inspection note" onclick="toggleNotesField('notes-box-{{ st.id }}')">
+                <i class="fa-solid fa-pen-nib"></i>
+              </button>
+            </div>
+
+            <!-- Hidden / Expandable Notes Box -->
+            <div id="notes-box-{{ st.id }}" style="display: {% if st.notes %}block{% else %}none{% endif %}; width: 100%; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #e2e8f0;">
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="text" id="input-notes-{{ st.id }}" class="form-control" style="font-size: 0.76rem; padding: 4px 8px;" placeholder="Add sign-off notes or snag reference..." value="{{ st.notes|default:'' }}">
+                <button type="button" class="btn-skydash btn-skydash-primary btn-skydash-sm" style="font-size: 0.72rem; white-space: nowrap;" onclick="saveMilestoneNotes('{{ st.id }}')">
+                  Save Note
+                </button>
+              </div>
+            </div>
+
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       ROOM DEFECT & SNAG HISTORY SECTION
+       ==================================================================== -->
+  <div id="roomDefectsSection" class="skydash-card" style="margin-top: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid var(--border-light);">
+    <div class="skydash-card-header" style="background: #FAFBFD; padding: 1rem 1.4rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+      <h3 class="skydash-card-title" style="font-size: 1.05rem; margin: 0; color: var(--text-dark);">
+        <i class="fa-solid fa-camera" style="color: var(--skydash-danger);"></i>
+        Defect & Snag Record History &bull; {{ room.room_number }}
+      </h3>
+      <a href="{% url 'inspection_create' %}?project={{ project.id }}&floor={{ floor.floor_number }}&room={{ room.room_number }}" class="btn-skydash btn-skydash-sm" style="background: var(--skydash-danger); color: #fff; border-color: var(--skydash-danger);">
+        <i class="fa-solid fa-plus"></i> Log Snag for this Unit
+      </a>
+    </div>
+
+    <div class="skydash-card-body" style="padding: 1.25rem;">
+      {% if defects %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;">
+          {% for d in defects %}
+          <div style="border: 1px solid var(--border-light); border-radius: 8px; padding: 0.85rem; background: #FAFBFD; display: flex; gap: 0.85rem; align-items: flex-start;">
+            {% if d.annotated_image or d.original_image %}
+              <img src="{% if d.annotated_image %}{{ d.annotated_image.url }}{% else %}{{ d.original_image.url }}{% endif %}" alt="Defect" style="width: 76px; height: 76px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(0,0,0,0.08); flex-shrink: 0;">
+            {% else %}
+              <div style="width: 76px; height: 76px; background: #e2e8f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 1.3rem; flex-shrink: 0;">
+                <i class="fa-solid fa-image"></i>
+              </div>
+            {% endif %}
+
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; gap: 0.35rem;">
+                <span class="badge-dept badge-dept-{{ d.department|lower }}" style="font-size: 0.65rem; padding: 1px 6px;">{{ d.department }}</span>
+                <span class="badge-status {{ d.status_badge_class }}" style="font-size: 0.65rem; padding: 1px 6px;">{{ d.status }}</span>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-dark); font-weight: 600; line-height: 1.35; margin-bottom: 0.35rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                {{ d.faults_description }}
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.68rem; color: #64748b;">
+                <span>{{ d.date_recorded|date:"M d, Y" }}</span>
+                <a href="{% url 'inspection_detail' d.id %}" style="color: var(--skydash-primary); text-decoration: none; font-weight: 700;">View &bull; Markup &rarr;</a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="text-align: center; padding: 2rem; color: var(--text-body);">
+          <i class="fa-solid fa-circle-check" style="font-size: 2.2rem; color: #22c55e; margin-bottom: 0.5rem; display: block;"></i>
+          <h4 style="margin: 0; color: var(--text-dark); font-weight: 700;">No Defect Records for {{ room.room_number }}</h4>
+          <span style="font-size: 0.8rem; color: var(--text-body); margin-top: 0.25rem; display: block;">
+            All trades clear with zero reported non-conformance snags.
+          </span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ====================================================================
+     FLOATING TOAST NOTIFICATION
+     ==================================================================== -->
+<div id="roomStatusToast" class="matrix-toast">
+  <i class="fa-solid fa-circle-check" style="color: #22c55e; font-size: 1.1rem;"></i>
+  <span id="roomStatusToastMsg">Saved successfully</span>
+</div>
+
+<script>
+const CURRENT_ROOM_ID = {{ room.id }};
+const OPEN_DEFECTS_COUNT = {{ open_defects|length }};
+
+function getCsrfToken() {
+  const cookieValue = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='))
+    ?.split('=')[1];
+  return cookieValue || document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+}
+
+function showRoomToast(msg, type = 'success') {
+  const toast = document.getElementById('roomStatusToast');
+  const msgElem = document.getElementById('roomStatusToastMsg');
+  if (!toast || !msgElem) return;
+
+  msgElem.innerHTML = msg;
+  toast.className = 'matrix-toast show ' + (type === 'error' ? 'toast-error' : 'toast-success');
+
+  const icon = toast.querySelector('i');
+  if (icon) {
+    icon.className = type === 'error' ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
+    icon.style.color = type === 'error' ? '#ef4444' : '#22c55e';
+  }
+
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2600);
+}
+
+function toggleNotesField(id) {
+  const elem = document.getElementById(id);
+  if (!elem) return;
+  elem.style.display = elem.style.display === 'none' ? 'block' : 'none';
+  if (elem.style.display === 'block') {
+    const input = elem.querySelector('input');
+    if (input) input.focus();
+  }
+}
+
+async function setMilestonePillStatus(statusId, newStatus, milestoneName) {
+  // If marking 'Done' but room has open defects, confirm first
+  if (newStatus === 'Done' && OPEN_DEFECTS_COUNT > 0) {
+    if (!confirm(`Warning: Unit has ${OPEN_DEFECTS_COUNT} open snag(s). Are you sure you want to mark '${milestoneName}' as Done?`)) {
+      return;
+    }
+  }
+
+  const row = document.getElementById(`row-status-${statusId}`);
+  const group = row?.querySelector(`.status-pill-group[data-status-id="${statusId}"]`);
+  if (!group) return;
+
+  // Optimistic UI toggle
+  const buttons = group.querySelectorAll('.status-pill-btn');
+  buttons.forEach(btn => btn.classList.remove('active'));
+  
+  const classMap = {
+    'Pending': 'pill-pending',
+    'In Progress': 'pill-progress',
+    'Done': 'pill-done',
+    'Not Applicable': 'pill-na'
+  };
+  const targetBtn = group.querySelector('.' + classMap[newStatus]);
+  if (targetBtn) targetBtn.classList.add('active');
+
+  try {
+    const response = await fetch(`/api/milestones/${statusId}/update/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      const timeElem = document.getElementById(`time-${statusId}`);
+      if (timeElem && data.updated_at) timeElem.textContent = data.updated_at;
+      showRoomToast(`${milestoneName}: <strong>${newStatus}</strong>`, 'success');
+      recalcStatsClient();
+    } else {
+      showRoomToast(`Error: ${data.error || 'Update failed'}`, 'error');
+    }
+  } catch (err) {
+    showRoomToast('Network error saving status', 'error');
+  }
+}
+
+async function saveMilestoneNotes(statusId) {
+  const input = document.getElementById(`input-notes-${statusId}`);
+  if (!input) return;
+  const notes = input.value.trim();
+
+  try {
+    const response = await fetch(`/api/milestones/${statusId}/update/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ notes: notes })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      showRoomToast('Note saved successfully', 'success');
+    } else {
+      showRoomToast('Error saving note', 'error');
+    }
+  } catch (e) {
+    showRoomToast('Network error saving note', 'error');
+  }
+}
+
+async function bulkUpdateRoomStatuses(newStatus, category = 'ALL') {
+  if (newStatus === 'Done' && OPEN_DEFECTS_COUNT > 0) {
+    if (!confirm(`Warning: Unit has ${OPEN_DEFECTS_COUNT} open defect(s). Do you want to sign off and mark all milestones as Done?`)) {
+      return;
+    }
+  }
+
+  try {
+    const response = await fetch(`/api/rooms/${CURRENT_ROOM_ID}/bulk-status/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ status: newStatus, category: category, force: true })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      showRoomToast(`Updated ${data.updated_count} milestone(s) to <strong>${newStatus}</strong>`, 'success');
+      // Reload page to reflect full bulk updates
+      setTimeout(() => window.location.reload(), 450);
+    } else {
+      showRoomToast(data.message || data.error || 'Bulk update failed', 'error');
+    }
+  } catch (e) {
+    showRoomToast('Network error on bulk update', 'error');
+  }
+}
+
+function recalcStatsClient() {
+  const allRows = document.querySelectorAll('.milestone-status-row');
+  let done = 0;
+  let total = allRows.length;
+  allRows.forEach(r => {
+    if (r.querySelector('.status-pill-btn.pill-done.active')) done++;
+  });
+
+  const rate = total > 0 ? ((done / total) * 100).toFixed(1) : 0;
+  const pctElem = document.getElementById('pageCompletionPercent');
+  const ratioElem = document.getElementById('pageCompletionRatio');
+  const bar = document.getElementById('pageProgressBar');
+
+  if (pctElem) pctElem.textContent = `${rate}%`;
+  if (ratioElem) ratioElem.textContent = `${done} of ${total} Milestones Done`;
+  if (bar) bar.style.width = `${rate}%`;
+}
+</script>
+{% endblock %}
